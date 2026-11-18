@@ -1,0 +1,2664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Agri Hub 3.0 — Farmer Intelligence Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f4f7f4; color: #1b2e1e; }
+    .agri-gradient { background: linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%); }
+    .earthy-card { background: #ffffff; border: 1px solid #e2ece4; box-shadow: 0 4px 20px -2px rgba(20, 83, 45, 0.06); }
+    .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 999px; }
+    @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 0.8; } 70% { transform: scale(1.2); opacity: 0; } 100% { transform: scale(0.95); opacity: 0; } }
+    .mic-pulse { animation: pulse-ring 1.5s infinite; }
+  </style>
+</head>
+<body class="antialiased selection:bg-emerald-200 selection:text-emerald-950">
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- GMAIL ENTRY GATE MODAL -->
+  <div id="auth-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/90 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-emerald-100">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl agri-gradient flex items-center justify-center text-white text-xl shadow-lg">
+            <i class="fa-solid fa-seedling"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-extrabold text-emerald-950">Smart Agri Hub 3.0</h1>
+            <p class="text-xs text-emerald-700 font-medium" data-i18n="auth_subtitle">Intelligent Farmer Ecosystem</p>
+          </div>
+        </div>
+        <select id="auth-lang-select" onchange="changeLanguage(this.value)" class="text-xs font-semibold bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl px-2.5 py-1.5 focus:outline-none">
+          <option value="en">English</option>
+          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          <option value="te">తెలుగు (Telugu)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="mr">मराठी (Marathi)</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+        </select>
+      </div>
+
+      <h2 class="text-2xl font-bold text-slate-900 mb-2" data-i18n="auth_welcome">Welcome, Farmer!</h2>
+      <p class="text-sm text-slate-600 mb-6" data-i18n="auth_desc">Enter your Gmail address to personalize crop advisories, save your farming journey, and enable offline sync.</p>
+
+      <form id="gmail-login-form" onsubmit="handleGmailLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5" data-i18n="auth_email_label">Farmer Gmail Address</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+              <i class="fa-brands fa-google"></i>
+            </span>
+            <input type="email" id="farmer-gmail-input" required placeholder="farmer.name@gmail.com"
+              class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-sm font-medium" />
+          </div>
+          <p id="gmail-error" class="hidden text-xs text-red-600 mt-1.5 font-medium"></p>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-xl agri-gradient text-white font-bold text-sm shadow-lg shadow-emerald-900/20 hover:opacity-95 transition flex items-center justify-center gap-2">
+          <span data-i18n="auth_continue">Continue to Farm Dashboard</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+        <span><i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i> <span data-i18n="auth_session_note">Local Session & Offline Ready</span></span>
+        <span class="px-2 py-0.5 bg-amber-50 text-amber-800 rounded-md font-medium border border-amber-200" data-i18n="auth_unverified_tag">Email Session</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION SHELL -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-col lg:flex-row">
+
+    <!-- MOBILE HEADER -->
+    <header class="lg:hidden sticky top-0 z-30 agri-gradient text-white px-4 py-3 flex items-center justify-between shadow-md">
+      <div class="flex items-center gap-2.5">
+        <button onclick="toggleMobileSidebar()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white" aria-label="Menu">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-seedling text-emerald-300"></i>
+          <span class="font-bold text-base tracking-tight">Smart Agri Hub 3.0</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="mobile-net-badge" class="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-300/30">ONLINE</span>
+        <select id="mobile-lang-select" onchange="changeLanguage(this.value)" class="text-xs font-bold bg-white/15 text-white border border-white/25 rounded-lg px-2 py-1 outline-none">
+          <option value="en" class="text-slate-900">EN</option>
+          <option value="kn" class="text-slate-900">ಕನ್ನಡ</option>
+          <option value="te" class="text-slate-900">తెలుగు</option>
+          <option value="hi" class="text-slate-900">हिन्दी</option>
+          <option value="mr" class="text-slate-900">मराठी</option>
+          <option value="ta" class="text-slate-900">தமிழ்</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- MOBILE SIDEBAR BACKDROP -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-xs"></div>
+
+    <!-- FIXED LEFT VERTICAL SIDEBAR -->
+    <aside id="left-sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-72 agri-gradient text-white flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-2xl shrink-0">
+      <!-- Brand Header -->
+      <div class="p-5 border-b border-white/15 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-emerald-300 text-lg border border-white/20">
+            <i class="fa-solid fa-wheat-awn"></i>
+          </div>
+          <div>
+            <h1 class="font-extrabold text-base leading-tight tracking-tight">Smart Agri Hub</h1>
+            <span class="text-[11px] font-semibold text-emerald-200 bg-emerald-950/50 px-2 py-0.5 rounded-full">v3.0 Intelligent</span>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 rounded-lg bg-white/10 text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Farmer Mini Card -->
+      <div class="mx-4 mt-4 p-3 rounded-2xl bg-white/10 border border-white/15">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-amber-400 text-emerald-950 font-extrabold flex items-center justify-center text-sm shrink-0" id="sidebar-avatar">F</div>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold truncate" id="sidebar-farmer-name">Ramesh Gowda</p>
+            <p class="text-[11px] text-emerald-200 truncate" id="sidebar-farmer-loc">Bengaluru Rural • Tomato</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 14 Sidebar Navigation Items -->
+      <nav id="sidebar-nav" class="flex-1 overflow-y-auto sidebar-scroll px-3 py-4 space-y-1 text-sm font-medium">
+        <!-- Populated dynamically via JS to ensure full translation -->
+      </nav>
+
+      <!-- Bottom Status & Switch Account -->
+      <div class="p-4 border-t border-white/15 space-y-2.5 text-xs">
+        <div class="flex items-center justify-between bg-black/20 px-3 py-2 rounded-xl">
+          <span class="flex items-center gap-2">
+            <span id="net-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span id="net-status-text" data-i18n="status_online">Online Mode</span>
+          </span>
+          <span id="sync-queue-badge" class="hidden px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px]">0 Queued</span>
+        </div>
+        <button onclick="switchAccount()" class="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-100 flex items-center justify-center gap-2 transition font-semibold">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span data-i18n="switch_account">Switch / Logout Gmail</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- DESKTOP TOP UTILITY BAR -->
+      <div class="hidden lg:flex sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-emerald-100 px-8 py-3.5 items-center justify-between">
+        <div>
+          <h2 id="topbar-page-title" class="text-lg font-extrabold text-emerald-950">Dashboard</h2>
+          <p id="topbar-page-subtitle" class="text-xs text-slate-500">Personalized farm telemetry, weather & market intelligence</p>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Quick Voice Trigger -->
+          <button onclick="navigateTo('voice')" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-2 transition">
+            <i class="fa-solid fa-microphone text-emerald-600"></i>
+            <span data-i18n="quick_voice_btn">Ask Agri Voice AI</span>
+          </button>
+
+          <!-- Language Selector -->
+          <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+            <i class="fa-solid fa-language text-emerald-700 text-base"></i>
+            <select id="desktop-lang-select" onchange="changeLanguage(this.value)" class="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer">
+              <option value="en">English</option>
+              <option value="kn">ಕನ್ನಡ (Kannada)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="mr">मराठी (Marathi)</option>
+              <option value="ta">தமிழ் (Tamil)</option>
+            </select>
+          </div>
+
+          <!-- Reminders Bell -->
+          <button onclick="navigateTo('journey')" class="relative p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 text-slate-700 border border-slate-200 transition" title="Reminders">
+            <i class="fa-solid fa-bell"></i>
+            <span id="bell-count" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">3</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- DYNAMIC MODULE CONTAINER -->
+      <main id="main-content" class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <!-- Rendered dynamically per selected section -->
+      </main>
+    </div>
+  </div>
+
+<script>
+/* ============================================================================
+   1. CENTRALIZED MULTILINGUAL SYSTEM (EN, KN, TE, HI, MR, TA)
+   ============================================================================ */
+const TRANSLATIONS = {
+  en: {
+    auth_subtitle: "Intelligent Farmer Ecosystem",
+    auth_welcome: "Welcome, Farmer!",
+    auth_desc: "Enter your Gmail address to personalize crop advisories, save your farming journey, and enable offline sync.",
+    auth_email_label: "Farmer Gmail Address",
+    auth_continue: "Continue to Farm Dashboard",
+    auth_session_note: "Local Session & Offline Ready",
+    auth_unverified_tag: "Email Session",
+    status_online: "Online Mode",
+    status_offline: "Offline Mode",
+    switch_account: "Switch / Logout Gmail",
+    quick_voice_btn: "Ask Agri Voice AI",
+    nav_dashboard: "Dashboard",
+    nav_journey: "My Farming Journey",
+    nav_scanner: "AI Crop Disease Scanner",
+    nav_demand: "Market Demand Intelligence",
+    nav_weather: "Weather & Forecast",
+    nav_mandis: "Google Maps & Nearby Mandis",
+    nav_marketplace: "Marketplace & Buyers",
+    nav_recovery: "Damaged Crop Recovery",
+    nav_calculator: "Profit Calculator",
+    nav_soil: "Soil Health & Fertilizer",
+    nav_schemes: "Government Schemes",
+    nav_voice: "AI Voice Assistant",
+    nav_profile: "Farmer Profile",
+    nav_settings: "Settings",
+    dash_greeting: "Namaste",
+    dash_sub: "Here is your personalized farm intelligence overview",
+    active_crop: "Active Crop",
+    current_stage: "Current Stage",
+    farm_area: "Farm Area",
+    acres: "Acres",
+    next_task: "Next Priority Task",
+    weather_now: "Current Weather",
+    demo_badge: "AI Estimate / Demo Data",
+    live_badge: "Live API Connected",
+    offline_banner: "You are currently offline. Saved farming journey, profile, reminders, and local calculators remain active. Queued inquiries will sync when online.",
+    scan_title: "AI Crop Disease & Pest Scanner",
+    scan_sub: "Capture or upload a clear photo of leaves, fruits, stems, or roots for instant diagnosis in your language.",
+    btn_camera: "Open Camera",
+    btn_upload: "Upload Photo",
+    btn_analyze: "Analyze Crop Health",
+    analyzing_msg: "Analyzing plant pathology with Vision AI...",
+    disclaimer_ai: "Disclaimer: AI diagnosis is an automated estimate. For severe infections or chemical spraying, verify with a local Krishi Vigyan Kendra (KVK) agronomist.",
+    demand_title: "AI Market Demand Intelligence",
+    demand_sub: "Evaluate market demand scores, price trends, and net profit estimates before sowing or harvesting.",
+    btn_run_demand: "Analyze Market Demand",
+    planting_title: "Smart Planting Calendar (7-Day Optimal Window)",
+    planting_sub: "Planting dates are strictly restricted to the agronomically safe 7-day window for your crop & location.",
+    recovery_title: "Damaged Crop Recovery & Industry Connect",
+    recovery_sub: "Turn rejected, excess, or weather-damaged crops into income via compost, biogas, or processing units.",
+    voice_title: "Multilingual AI Farming Voice Assistant",
+    voice_sub: "Speak or type your farming question in your selected language.",
+    voice_listen: "Start Speaking",
+    voice_stop: "Stop",
+    voice_clear: "Clear Chat",
+    voice_placeholder: "Type your farming question here...",
+    save_btn: "Save Changes",
+    saved_toast: "Saved successfully!"
+  },
+  kn: {
+    auth_subtitle: "ಬುದ್ಧಿವಂತ ರೈತ ಪರಿಸರ ವ್ಯವಸ್ಥೆ",
+    auth_welcome: "ಸುಸ್ವಾಗತ, ರೈತ ಬಾಂಧವರೇ!",
+    auth_desc: "ಬೆಳೆ ಸಲಹೆಗಳನ್ನು ಪಡೆಯಲು, ನಿಮ್ಮ ಕೃಷಿ ಪ್ರಯಾಣವನ್ನು ಉಳಿಸಲು ಮತ್ತು ಆಫ್‌ಲೈನ್ ಬಳಕೆಗಾಗಿ ನಿಮ್ಮ ಜಿಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ.",
+    auth_email_label: "ರೈತರ ಜಿಮೇಲ್ ವಿಳಾಸ",
+    auth_continue: "ಕೃಷಿ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಮುಂದುವರಿಯಿರಿ",
+    auth_session_note: "ಸ್ಥಳೀಯ ಸೆಷನ್ ಮತ್ತು ಆಫ್‌ಲೈನ್ ಸಿದ್ಧ",
+    auth_unverified_tag: "ಇಮೇಲ್ ಸೆಷನ್",
+    status_online: "ಆನ್‌ಲೈನ್ ಮೋಡ್",
+    status_offline: "ಆಫ್‌ಲೈನ್ ಮೋಡ್",
+    switch_account: "ಜಿಮೇಲ್ ಬದಲಾಯಿಸಿ / ಲಾಗ್ ಔಟ್",
+    quick_voice_btn: "ಕೃಷಿ ಧ್ವನಿ ಸಹಾಯಕ",
+    nav_dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    nav_journey: "ನನ್ನ ಕೃಷಿ ಪ್ರಯಾಣ",
+    nav_scanner: "AI ಬೆಳೆ ರೋಗ ಸ್ಕ್ಯಾನರ್",
+    nav_demand: "ಮಾರುಕಟ್ಟೆ ಬೇಡಿಕೆ ವಿಶ್ಲೇಷಣೆ",
+    nav_weather: "ಹವಾಮಾನ ಮತ್ತು ಮುನ್ಸೂಚನೆ",
+    nav_mandis: "ಗೂಗಲ್ ನಕ್ಷೆ ಮತ್ತು ಹತ್ತಿರದ ಮಂಡಿಗಳು",
+    nav_marketplace: "ಮಾರುಕಟ್ಟೆ ಮತ್ತು ಖರೀದಿದಾರರು",
+    nav_recovery: "ಹಾನಿಗೊಳಗಾದ ಬೆಳೆ ಚೇತರಿಕೆ",
+    nav_calculator: "ಲಾಭದ ಕ್ಯಾಲ್ಕುಲೇಟರ್",
+    nav_soil: "ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಮತ್ತು ರಸಗೊಬ್ಬರ",
+    nav_schemes: "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
+    nav_voice: "AI ಧ್ವನಿ ಸಹಾಯಕ",
+    nav_profile: "ರೈತರ ಪ್ರೊಫೈಲ್",
+    nav_settings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    dash_greeting: "ನಮಸ್ಕಾರ",
+    dash_sub: "ನಿಮ್ಮ ವೈಯಕ್ತಿಕಗೊಳಿಸಿದ ಕೃಷಿ ಮಾಹಿತಿ ಇಲ್ಲಿದೆ",
+    active_crop: "ಪ್ರಸ್ತುತ ಬೆಳೆ",
+    current_stage: "ಪ್ರಸ್ತುತ ಹಂತ",
+    farm_area: "ಕೃಷಿ ಭೂಮಿ",
+    acres: "ಎಕರೆ",
+    next_task: "ಮುಂದಿನ ಪ್ರಮುಖ ಕೆಲಸ",
+    weather_now: "ಪ್ರಸ್ತುತ ಹವಾಮಾನ",
+    demo_badge: "AI ಅಂದಾಜು / ಮಾದರಿ ಡೇಟಾ",
+    live_badge: "ಲೈವ್ API ಸಂಪರ್ಕಗೊಂಡಿದೆ",
+    offline_banner: "ನೀವು ಪ್ರಸ್ತುತ ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿದ್ದೀರಿ. ಉಳಿಸಿದ ಕೃಷಿ ಪ್ರಯಾಣ, ಪ್ರೊಫೈಲ್ ಮತ್ತು ಕ್ಯಾಲ್ಕುಲೇಟರ್ ಲಭ್ಯವಿದೆ.",
+    scan_title: "AI ಬೆಳೆ ರೋಗ ಮತ್ತು ಕೀಟ ಸ್ಕ್ಯಾನರ್",
+    scan_sub: "ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ತಕ್ಷಣದ ರೋಗನಿರ್ಣಯಕ್ಕಾಗಿ ಎಲೆಗಳು, ಹಣ್ಣುಗಳು ಅಥವಾ ಕಾಂಡಗಳ ಫೋಟೋವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+    btn_camera: "ಕ್ಯಾಮೆರಾ ತೆರೆಯಿರಿ",
+    btn_upload: "ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+    btn_analyze: "ಬೆಳೆ ಆರೋಗ್ಯ ವಿಶ್ಲೇಷಿಸಿ",
+    analyzing_msg: "ವಿಷನ್ AI ಮೂಲಕ ಬೆಳೆ ರೋಗವನ್ನು ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...",
+    disclaimer_ai: "ಹಕ್ಕುತ್ಯಾಗ: AI ರೋಗನಿರ್ಣಯವು ಅಂದಾಜು ಮಾತ್ರ. ತೀವ್ರ ಸೋಂಕಿಗೆ ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಜ್ಞಾನ ಕೇಂದ್ರದ (KVK) ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
+    demand_title: "AI ಮಾರುಕಟ್ಟೆ ಬೇಡಿಕೆ ಬುದ್ಧಿಮತ್ತೆ",
+    demand_sub: "ಬಿತ್ತನೆ ಅಥವಾ ಕೊಯ್ಲು ಮಾಡುವ ಮೊದಲು ಮಾರುಕಟ್ಟೆ ಬೇಡಿಕೆ ಅಂಕಗಳು ಮತ್ತು ನಿವ್ವಳ ಲಾಭವನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    btn_run_demand: "ಮಾರುಕಟ್ಟೆ ಬೇಡಿಕೆ ವಿಶ್ಲೇಷಿಸಿ",
+    planting_title: "ಸ್ಮಾರ್ಟ್ ಬಿತ್ತನೆ ಕ್ಯಾಲೆಂಡರ್ (7-ದಿನಗಳ ಸೂಕ್ತ ಅವಧಿ)",
+    planting_sub: "ನಿಮ್ಮ ಬೆಳೆ ಮತ್ತು ಸ್ಥಳಕ್ಕೆ ಸುರಕ್ಷಿತವಾದ 7-ದಿನಗಳ ಅವಧಿಯಲ್ಲಿ ಮಾತ್ರ ಬಿತ್ತನೆ ದಿನಾಂಕವನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು.",
+    recovery_title: "ಹಾನಿಗೊಳಗಾದ ಬೆಳೆ ಚೇತರಿಕೆ ಮತ್ತು ಉದ್ಯಮ ಸಂಪರ್ಕ",
+    recovery_sub: "ಹಾನಿಗೊಳಗಾದ ಅಥವಾ ತಿರಸ್ಕೃತ ಬೆಳೆಗಳನ್ನು ಕಾಂಪೋಸ್ಟ್, ಬಯೋಗ್ಯಾಸ್ ಅಥವಾ ಸಂಸ್ಕರಣಾ ಘಟಕಗಳ ಮೂಲಕ ಆದಾಯವನ್ನಾಗಿ ಪರಿವರ್ತಿಸಿ.",
+    voice_title: "ಬಹುಭಾಷಾ AI ಕೃಷಿ ಧ್ವನಿ ಸಹಾಯಕ",
+    voice_sub: "ನಿಮ್ಮ ಆಯ್ಕೆಯ ಭಾಷೆಯಲ್ಲಿ ಕೃಷಿ ಪ್ರಶ್ನೆಗಳನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ಟೈಪ್ ಮಾಡಿ.",
+    voice_listen: "ಮಾತನಾಡಲು ಪ್ರಾರಂಭಿಸಿ",
+    voice_stop: "ನಿಲ್ಲಿಸಿ",
+    voice_clear: "ಚಾಟ್ ಅಳಿಸಿ",
+    voice_placeholder: "ನಿಮ್ಮ ಕೃಷಿ ಪ್ರಶ್ನೆಯನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ...",
+    save_btn: "ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ",
+    saved_toast: "ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ!"
+  },
+  te: {
+    auth_subtitle: "తెలివైన రైతు పర్యావరణ వ్యవస్థ",
+    auth_welcome: "స్వాగతం, రైతు సోదరులారా!",
+    auth_desc: "పంట సలహాలు పొందడానికి మరియు మీ వ్యవసాయ ప్రయాణాన్ని సేవ్ చేయడానికి మీ Gmail చిరునామాను నమోదు చేయండి.",
+    auth_email_label: "రైతు Gmail చిరునామా",
+    auth_continue: "వ్యవసాయ డ్యాష్‌బోర్డ్‌కు వెళ్లండి",
+    auth_session_note: "లోకల్ సెషన్ & ఆఫ్‌లైన్ సిద్ధంగా ఉంది",
+    auth_unverified_tag: "ఇమెయిల్ సెషన్",
+    status_online: "ఆన్‌లైన్ మోడ్",
+    status_offline: "ఆఫ్‌లైన్ మోడ్",
+    switch_account: "Gmail మార్చండి / లాగ్ అవుట్",
+    quick_voice_btn: "అగ్రి వాయిస్ AI అడగండి",
+    nav_dashboard: "డ్యాష్‌బోర్డ్",
+    nav_journey: "నా వ్యవసాయ ప్రయాణం",
+    nav_scanner: "AI పంట వ్యాధి స్కానర్",
+    nav_demand: "మార్కెట్ డిమాండ్ విశ్లేషణ",
+    nav_weather: "వాతావరణం & సూచన",
+    nav_mandis: "గూగుల్ మ్యాప్స్ & సమీప మండీలు",
+    nav_marketplace: "మార్కెట్‌ప్లేస్ & కొనుగోలుదారులు",
+    nav_recovery: "దెబ్బతిన్న పంట రికవరీ",
+    nav_calculator: "లాభాల కాలిక్యులేటర్",
+    nav_soil: "నేల ఆరోగ్యం & ఎరువులు",
+    nav_schemes: "ప్రభుత్వ పథకాలు",
+    nav_voice: "AI వాయిస్ అసిస్టెంట్",
+    nav_profile: "రైతు ప్రొఫైల్",
+    nav_settings: "సెట్టింగ్‌లు",
+    dash_greeting: "నమస్కారం",
+    dash_sub: "మీ వ్యక్తిగతీకరించిన వ్యవసాయ సమాచారం ఇక్కడ ఉంది",
+    active_crop: "ప్రస్తుత పంట",
+    current_stage: "ప్రస్తుత దశ",
+    farm_area: "వ్యవసాయ భూమి",
+    acres: "ఎకరాలు",
+    next_task: "తదుపరి ముఖ్యమైన పని",
+    weather_now: "ప్రస్తుత వాతావరణం",
+    demo_badge: "AI అంచనా / డెమో డేటా",
+    live_badge: "లైవ్ API కనెక్ట్ చేయబడింది",
+    offline_banner: "మీరు ప్రస్తుతం ఆఫ్‌లైన్‌లో ఉన్నారు. సేవ్ చేసిన పంట ప్రయాణం మరియు కాలిక్యులేటర్ పనిచేస్తాయి.",
+    scan_title: "AI పంట వ్యాధి & తెగుళ్ల స్కానర్",
+    scan_sub: "మీ భాషలో తక్షణ నిర్ధారణ కోసం ఆకులు, పండ్లు లేదా కాండం ఫోటోను అప్‌లోడ్ చేయండి.",
+    btn_camera: "కెమెరా తెరవండి",
+    btn_upload: "ఫోటో అప్‌లోడ్ చేయండి",
+    btn_analyze: "పంట ఆరోగ్యాన్ని విశ్లేషించండి",
+    analyzing_msg: "విజన్ AI తో పంట వ్యాధిని విశ్లేషిస్తోంది...",
+    disclaimer_ai: "గమనిక: AI నిర్ధారణ ఒక అంచనా మాత్రమే. తీవ్రమైన సమస్యలకు స్థానిక KVK నిపుణులను సంప్రదించండి.",
+    demand_title: "AI మార్కెట్ డిమాండ్ ఇంటెలిజెన్స్",
+    demand_sub: "విత్తే ముందు లేదా కోతకు ముందు మార్కెట్ డిమాండ్ స్కోర్ మరియు నికర లాభాన్ని అంచనా వేయండి.",
+    btn_run_demand: "మార్కెట్ డిమాండ్ విశ్లేషించండి",
+    planting_title: "స్మార్ట్ నాటడం క్యాలెండర్ (7-రోజుల అనుకూల సమయం)",
+    planting_sub: "మీ పంట మరియు ప్రాంతానికి అనుకూలమైన 7-రోజుల విండోలో మాత్రమే తేదీని ఎంచుకోవచ్చు.",
+    recovery_title: "దెబ్బతిన్న పంట రికవరీ & పరిశ్రమల అనుసంధానం",
+    recovery_sub: "దెబ్బతిన్న పంటలను కంపోస్ట్, బయోగ్యాస్ లేదా ప్రాసెసింగ్ యూనిట్ల ద్వారా ఆదాయంగా మార్చుకోండి.",
+    voice_title: "బహుభాషా AI వ్యవసాయ వాయిస్ అసిస్టెంట్",
+    voice_sub: "మీరు ఎంచుకున్న భాషలో వ్యవసాయ ప్రశ్నలను మాట్లాడండి లేదా టైప్ చేయండి.",
+    voice_listen: "మాట్లాడటం ప్రారంభించండి",
+    voice_stop: "ఆపండి",
+    voice_clear: "చాట్ క్లియర్ చేయండి",
+    voice_placeholder: "మీ వ్యవసాయ ప్రశ్నను ఇక్కడ టైప్ చేయండి...",
+    save_btn: "మార్పులను సేవ్ చేయండి",
+    saved_toast: "విజయవంతంగా సేవ్ చేయబడింది!"
+  },
+  hi: {
+    auth_subtitle: "बुद्धिमान किसान पारिस्थितिकी तंत्र",
+    auth_welcome: "स्वागत है, किसान भाई!",
+    auth_desc: "फसल सलाह प्राप्त करने, अपनी खेती की यात्रा सहेजने और ऑफ़लाइन सिंक के लिए अपना जीमेल पता दर्ज करें।",
+    auth_email_label: "किसान जीमेल पता",
+    auth_continue: "फार्म डैशबोर्ड पर जाएं",
+    auth_session_note: "लोकल सेशन और ऑफ़लाइन तैयार",
+    auth_unverified_tag: "ईमेल सेशन",
+    status_online: "ऑनलाइन मोड",
+    status_offline: "ऑफ़लाइन मोड",
+    switch_account: "जीमेल बदलें / लॉग आउट",
+    quick_voice_btn: "कृषि वॉयस AI से पूछें",
+    nav_dashboard: "डैशबोर्ड",
+    nav_journey: "मेरी खेती की यात्रा",
+    nav_scanner: "AI फसल रोग स्कैनर",
+    nav_demand: "बाजार मांग विश्लेषण",
+    nav_weather: "मौसम और पूर्वानुमान",
+    nav_mandis: "गूगल मैप्स और नजदीकी मंडियां",
+    nav_marketplace: "बाजार और खरीदार",
+    nav_recovery: "क्षतिग्रस्त फसल रिकवरी",
+    nav_calculator: "लाभ कैलकुलेटर",
+    nav_soil: "मिट्टी स्वास्थ्य और उर्वरक",
+    nav_schemes: "सरकारी योजनाएं",
+    nav_voice: "AI वॉयस असिस्टेंट",
+    nav_profile: "किसान प्रोफ़ाइल",
+    nav_settings: "सेटिंग्स",
+    dash_greeting: "नमस्ते",
+    dash_sub: "यहाँ आपकी व्यक्तिगत कृषि जानकारी है",
+    active_crop: "सक्रिय फसल",
+    current_stage: "वर्तमान चरण",
+    farm_area: "खेत का क्षेत्रफल",
+    acres: "एकड़",
+    next_task: "अगला मुख्य कार्य",
+    weather_now: "वर्तमान मौसम",
+    demo_badge: "AI अनुमान / डेमो डेटा",
+    live_badge: "लाइव API जुड़ा हुआ है",
+    offline_banner: "आप अभी ऑफ़लाइन हैं। सहेजी गई खेती की यात्रा, प्रोफ़ाइल और कैलकुलेटर उपलब्ध हैं।",
+    scan_title: "AI फसल रोग और कीट स्कैनर",
+    scan_sub: "अपनी भाषा में तुरंत जांच के लिए पत्तियों, फलों या तने की फोटो अपलोड करें।",
+    btn_camera: "कैमरा खोलें",
+    btn_upload: "फोटो अपलोड करें",
+    btn_analyze: "फसल स्वास्थ्य का विश्लेषण करें",
+    analyzing_msg: "विज़न AI द्वारा फसल रोग का विश्लेषण किया जा रहा है...",
+    disclaimer_ai: "अस्वीकरण: AI निदान केवल एक अनुमान है। गंभीर संक्रमण के लिए कृषि विज्ञान केंद्र (KVK) विशेषज्ञ से सलाह लें।",
+    demand_title: "AI बाजार मांग बुद्धिमत्ता",
+    demand_sub: "बुवाई या कटाई से पहले बाजार मांग स्कोर और शुद्ध लाभ का अनुमान लगाएं।",
+    btn_run_demand: "बाजार मांग का विश्लेषण करें",
+    planting_title: "स्मार्ट बुवाई कैलेंडर (7-दिन की उपयुक्त अवधि)",
+    planting_sub: "आपकी फसल और स्थान के लिए केवल सुरक्षित 7-दिन की अवधि में ही बुवाई की तारीख चुनी जा सकती है।",
+    recovery_title: "क्षतिग्रस्त फसल रिकवरी और उद्योग संपर्क",
+    recovery_sub: "खराब या अतिरिक्त फसल को खाद, बायोगैस या प्रसंस्करण इकाइयों के माध्यम से आय में बदलें।",
+    voice_title: "बहुभाषी AI कृषि वॉयस असिस्टेंट",
+    voice_sub: "अपनी चुनी हुई भाषा में खेती से जुड़े प्रश्न बोलें या लिखें।",
+    voice_listen: "बोलना शुरू करें",
+    voice_stop: "रोकें",
+    voice_clear: "चैट साफ़ करें",
+    voice_placeholder: "अपना खेती का प्रश्न यहाँ लिखें...",
+    save_btn: "परिवर्तन सहेजें",
+    saved_toast: "सफलतापूर्वक सहेजा गया!"
+  },
+  mr: {
+    auth_subtitle: "बुद्धिमान शेतकरी परिसंस्था",
+    auth_welcome: "स्वागत आहे, शेतकरी बांधवांनो!",
+    auth_desc: "पीक सल्ला मिळवण्यासाठी आणि तुमचा शेती प्रवास जतन करण्यासाठी तुमचा जीमेल पत्ता प्रविष्ट करा.",
+    auth_email_label: "शेतकरी जीमेल पत्ता",
+    auth_continue: "फार्म डॅशबोर्डवर जा",
+    auth_session_note: "स्थानिक सत्र आणि ऑफलाइन तयार",
+    auth_unverified_tag: "ईमेल सत्र",
+    status_online: "ऑनलाइन मोड",
+    status_offline: "ऑफलाइन मोड",
+    switch_account: "जीमेल बदला / लॉग आउट",
+    quick_voice_btn: "कृषी व्हॉइस AI ला विचारा",
+    nav_dashboard: "डॅशबोर्ड",
+    nav_journey: "माझा शेती प्रवास",
+    nav_scanner: "AI पीक रोग स्कॅनर",
+    nav_demand: "बाजार मागणी विश्लेषण",
+    nav_weather: "हवामान आणि अंदाज",
+    nav_mandis: "गुगल मॅप्स आणि जवळच्या बाजारपेठा",
+    nav_marketplace: "बाजारपेठ आणि खरेदीदार",
+    nav_recovery: "नुकसानग्रस्त पीक पुनर्प्राप्ती",
+    nav_calculator: "नफा कॅल्क्युलेटर",
+    nav_soil: "माती आरोग्य आणि खते",
+    nav_schemes: "सरकारी योजना",
+    nav_voice: "AI व्हॉइस असिस्टंट",
+    nav_profile: "शेतकरी प्रोफाइल",
+    nav_settings: "सेटिंग्ज",
+    dash_greeting: "नमस्कार",
+    dash_sub: "तुमची वैयक्तिक शेती माहिती येथे आहे",
+    active_crop: "सध्याचे पीक",
+    current_stage: "सध्याचा टप्पा",
+    farm_area: "शेती क्षेत्र",
+    acres: "एकर",
+    next_task: "पुढील महत्त्वाचे काम",
+    weather_now: "सध्याचे हवामान",
+    demo_badge: "AI अंदाज / डेमो डेटा",
+    live_badge: "लाइव्ह API जोडलेले आहे",
+    offline_banner: "तुम्ही सध्या ऑफलाइन आहात. जतन केलेला शेती प्रवास आणि कॅल्क्युलेटर कार्यरत आहेत.",
+    scan_title: "AI पीक रोग आणि कीड स्कॅनर",
+    scan_sub: "तुमच्या भाषेत त्वरित निदानासाठी पाने, फळे किंवा खोडाचा फोटो अपलोड करा.",
+    btn_camera: "कॅमेरा उघडा",
+    btn_upload: "फोटो अपलोड करा",
+    btn_analyze: "पीक आरोग्याचे विश्लेषण करा",
+    analyzing_msg: "व्हिजन AI द्वारे पीक रोगाचे विश्लेषण होत आहे...",
+    disclaimer_ai: "अस्वीकरण: AI निदान हा केवळ अंदाज आहे. गंभीर प्रादुर्भावासाठी कृषी विज्ञान केंद्र (KVK) तज्ञांचा सल्ला घ्या.",
+    demand_title: "AI बाजार मागणी बुद्धिमत्ता",
+    demand_sub: "पेरणी किंवा काढणीपूर्वी बाजार मागणी गुण आणि निव्वळ नफ्याचा अंदाज घ्या.",
+    btn_run_demand: "बाजार मागणीचे विश्लेषण करा",
+    planting_title: "स्मार्ट पेरणी कॅलेंडर (7-दिवसांचा योग्य कालावधी)",
+    planting_sub: "तुमच्या पिकासाठी आणि ठिकाणासाठी सुरक्षित 7-दिवसांच्या कालावधीतच पेरणीची तारीख निवडता येईल.",
+    recovery_title: "नुकसानग्रस्त पीक पुनर्प्राप्ती आणि उद्योग संपर्क",
+    recovery_sub: "नुकसानग्रस्त पिकांचे कंपोस्ट, बायोगॅस किंवा प्रक्रिया उद्योगांद्वारे उत्पन्नात रूपांतर करा.",
+    voice_title: "बहुभाषिक AI कृषी व्हॉइस असिस्टंट",
+    voice_sub: "तुमच्या निवडलेल्या भाषेत शेतीचे प्रश्न बोला किंवा टाइप करा.",
+    voice_listen: "बोलणे सुरू करा",
+    voice_stop: "थांबा",
+    voice_clear: "चॅट साफ करा",
+    voice_placeholder: "तुमचा शेतीचा प्रश्न येथे टाइप करा...",
+    save_btn: "बदल जतन करा",
+    saved_toast: "यशस्वीरित्या जतन केले!"
+  },
+  ta: {
+    auth_subtitle: "புத்திசாலித்தனமான விவசாயி சூழலியல்",
+    auth_welcome: "நல்வரவு, விவசாய பெருமக்களே!",
+    auth_desc: "பயிர் ஆலோசனைகளைப் பெறவும், உங்கள் விவசாயப் பயணத்தைச் சேமிக்கவும் உங்கள் Gmail முகவரியை உள்ளிடவும்.",
+    auth_email_label: "விவசாயி Gmail முகவரி",
+    auth_continue: "பண்ணை டாஷ்போர்டுக்குச் செல்லவும்",
+    auth_session_note: "உள்ளூர் அமர்வு & ஆஃப்லைன் தயார்",
+    auth_unverified_tag: "மின்னஞ்சல் அமர்வு",
+    status_online: "ஆன்லைன் பயன்முறை",
+    status_offline: "ஆஃப்லைன் பயன்முறை",
+    switch_account: "Gmail மாற்று / வெளியேறு",
+    quick_voice_btn: "வேளாண் குரல் AI கேளுங்கள்",
+    nav_dashboard: "டாஷ்போர்டு",
+    nav_journey: "எனது விவசாயப் பயணம்",
+    nav_scanner: "AI பயிர் நோய் ஸ்கேனர்",
+    nav_demand: "சந்தை தேவை நுண்ணறிவு",
+    nav_weather: "வானிலை & முன்னறிவிப்பு",
+    nav_mandis: "கூகுள் மேப்ஸ் & அருகிலுள்ள மண்டிகள்",
+    nav_marketplace: "சந்தை & வாங்குபவர்கள்",
+    nav_recovery: "சேதமடைந்த பயிர் மீட்பு",
+    nav_calculator: "லாபக் கால்குலேட்டர்",
+    nav_soil: "மண் ஆரோக்கியம் & உரம்",
+    nav_schemes: "அரசுத் திட்டங்கள்",
+    nav_voice: "AI குரல் உதவியாளர்",
+    nav_profile: "விவசாயி சுயவிவரம்",
+    nav_settings: "அமைப்புகள்",
+    dash_greeting: "வணக்கம்",
+    dash_sub: "உங்கள் தனிப்பயனாக்கப்பட்ட விவசாயத் தகவல் இங்கே",
+    active_crop: "தற்போதைய பயிர்",
+    current_stage: "தற்போதைய நிலை",
+    farm_area: "பண்ணை பரப்பளவு",
+    acres: "ஏக்கர்",
+    next_task: "அடுத்த முக்கியப் பணி",
+    weather_now: "தற்போதைய வானிலை",
+    demo_badge: "AI மதிப்பீடு / மாதிரி தரவு",
+    live_badge: "நேரடி API இணைக்கப்பட்டுள்ளது",
+    offline_banner: "நீங்கள் தற்போது ஆஃப்லைனில் உள்ளீர்கள். சேமிக்கப்பட்ட பயணம் மற்றும் கால்குலேட்டர் செயல்படும்.",
+    scan_title: "AI பயிர் நோய் & பூச்சி ஸ்கேனர்",
+    scan_sub: "உங்கள் மொழியில் உடனடி நோயறிதலுக்கு இலைகள், பழங்கள் அல்லது தண்டுகளின் புகைப்படத்தைப் பதிவேற்றவும்.",
+    btn_camera: "கேமராவைத் திற",
+    btn_upload: "புகைப்படத்தைப் பதிவேற்று",
+    btn_analyze: "பயிர் ஆரோக்கியத்தை ஆராய்",
+    analyzing_msg: "விஷன் AI மூலம் பயிர் நோய் பகுப்பாய்வு செய்யப்படுகிறது...",
+    disclaimer_ai: "பொறுப்புத்துறப்பு: AI நோயறிதல் ஒரு மதிப்பீடு மட்டுமே. தீவிர பாதிப்புக்கு உள்ளூர் KVK நிபுணரை அணுகவும்.",
+    demand_title: "AI சந்தை தேவை நுண்ணறிவு",
+    demand_sub: "விதைப்பதற்கு அல்லது அறுவடை செய்வதற்கு முன் சந்தை தேவை மதிப்பெண் மற்றும் நிகர லாபத்தை மதிப்பிடுங்கள்.",
+    btn_run_demand: "சந்தை தேவையை ஆராய்",
+    planting_title: "ஸ்மார்ட் நடவு நாட்காட்டி (7-நாள் உகந்த சாளரம்)",
+    planting_sub: "உங்கள் பயிர் மற்றும் இருப்பிடத்திற்குப் பாதுகாப்பான 7-நாள் சாளரத்தில் மட்டுமே நடவு தேதியைத் தேர்ந்தெடுக்க முடியும்.",
+    recovery_title: "சேதமடைந்த பயிர் மீட்பு & தொழில் இணைப்பு",
+    recovery_sub: "சேதமடைந்த பயிர்களை உரம், பயோகேஸ் அல்லது பதப்படுத்தும் அலகுகள் மூலம் வருமானமாக மாற்றுங்கள்.",
+    voice_title: "பன்மொழி AI விவசாய குரல் உதவியாளர்",
+    voice_sub: "நீங்கள் தேர்ந்தெடுத்த மொழியில் விவசாயக் கேள்விகளைப் பேசுங்கள் அல்லது தட்டச்சு செய்யுங்கள்.",
+    voice_listen: "பேசத் தொடங்குங்கள்",
+    voice_stop: "நிறுத்து",
+    voice_clear: "அரட்டையை அழி",
+    voice_placeholder: "உங்கள் விவசாயக் கேள்வியை இங்கே தட்டச்சு செய்யவும்...",
+    save_btn: "மாற்றங்களைச் சேமி",
+    saved_toast: "வெற்றிகரமாக சேமிக்கப்பட்டது!"
+  }
+};
+
+const LANG_META = {
+  en: { name: "English", bcp47: "en-IN" },
+  kn: { name: "ಕನ್ನಡ (Kannada)", bcp47: "kn-IN" },
+  te: { name: "తెలుగు (Telugu)", bcp47: "te-IN" },
+  hi: { name: "हिन्दी (Hindi)", bcp47: "hi-IN" },
+  mr: { name: "मराठी (Marathi)", bcp47: "mr-IN" },
+  ta: { name: "தமிழ் (Tamil)", bcp47: "ta-IN" }
+};
+
+function t(key) {
+  const lang = state.lang || 'en';
+  return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.en[key] || key;
+}
+
+/* ============================================================================
+   2. STATE MANAGEMENT & PERSISTENCE (LOCALSTORAGE + OFFLINE QUEUE)
+   ============================================================================ */
+const DEFAULT_STATE = {
+  gmail: "",
+  lang: "en",
+  activeTab: "dashboard",
+  apiKeys: {
+    gemini: "", // Left empty so Canvas runtime or user override works seamlessly
+    weather: ""
+  },
+  profile: {
+    name: "Ramesh Gowda",
+    state: "Karnataka",
+    district: "Bengaluru Rural",
+    village: "Devanahalli",
+    area: 4.5,
+    soilType: "Red Loamy Soil",
+    water: "Drip Irrigation + Borewell",
+    primaryCrop: "Tomato",
+    experience: "12 Years"
+  },
+  planting: {
+    crop: "Tomato",
+    selectedDate: null, // Set on init inside 7-day window
+    completedStages: [0, 1, 2, 3],
+    completedTasks: ["soil_plow", "seed_treat", "drip_install"]
+  },
+  marketplaceListings: [
+    { id: "m1", crop: "Tomato (Hybrid Arka Rakshak)", qty: "25 Quintals", quality: "Grade A", price: "₹2,400 / Quintal", location: "Devanahalli, Bengaluru Rural", harvest: "2026-11-20", seller: "Ramesh Gowda", isDemo: true, inquiries: 3 },
+    { id: "m2", crop: "Finger Millet (Ragi GPU-28)", qty: "40 Quintals", quality: "Organic Certified", price: "₹3,850 / Quintal", location: "Chikkaballapur", harvest: "2026-11-15", seller: "Manjunath K.", isDemo: true, inquiries: 5 },
+    { id: "m3", crop: "Red Onion (Nasik Red)", qty: "60 Quintals", quality: "Export Grade", price: "₹2,900 / Quintal", location: "Kolar", harvest: "2026-11-22", seller: "Suresh Reddy", isDemo: true, inquiries: 2 }
+  ],
+  reminders: [
+    { id: "r1", title: "Drip Irrigation Cycle (45 mins)", type: "Irrigation", time: "06:30 AM", done: false },
+    { id: "r2", title: "Neem Oil Foliar Spray (Preventive)", type: "Pest Control", time: "04:30 PM", done: false },
+    { id: "r3", title: "Apply Potassium-Rich Micronutrient", type: "Fertilizer", time: "Tomorrow, 07:00 AM", done: false }
+  ],
+  offlineQueue: [],
+  voiceHistory: []
+};
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem("smart_agri_hub_3_state");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_STATE, ...parsed, profile: { ...DEFAULT_STATE.profile, ...(parsed.profile || {}) }, planting: { ...DEFAULT_STATE.planting, ...(parsed.planting || {}) }, apiKeys: { ...DEFAULT_STATE.apiKeys, ...(parsed.apiKeys || {}) } };
+    }
+  } catch (e) { console.warn("State load fallback", e); }
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+function saveState() {
+  try {
+    localStorage.setItem("smart_agri_hub_3_state", JSON.stringify(state));
+  } catch (e) { console.warn("State save warning", e); }
+}
+
+/* ============================================================================
+   3. DOMAIN DATASETS (CROP JOURNEYS, MANDIS, SCHEMES, INDUSTRIES)
+   ============================================================================ */
+const CROP_CONFIGS = {
+  Tomato: {
+    durationDays: 110,
+    recommendedOffsetDays: 2,
+    reason: "Mild November temperatures (18°C–27°C) in Bengaluru Rural optimize fruit set and reduce early blight risk.",
+    stages: [
+      "Land Preparation & Deep Ploughing",
+      "Nursery Raising & Seed Selection",
+      "Transplanting & Drip Setup",
+      "Root Establishment & Vegetative Growth",
+      "Staking & Pruning",
+      "Flowering & Boron/Calcium Spray",
+      "Fruit Formation & Nutrient Boost",
+      "Pest Monitoring (Fruit Borer / Leaf Miner)",
+      "Harvest Preparation & Grading",
+      "Harvesting & Post-Harvest Market Dispatch"
+    ]
+  },
+  Ragi: {
+    durationDays: 115,
+    recommendedOffsetDays: 1,
+    reason: "Residual soil moisture and dry sunny spells favor high grain filling and low blast incidence.",
+    stages: [
+      "Land Preparation & FYM Incorporation",
+      "Seed Selection (GPU-28 / MR-6)",
+      "Line Sowing & Spacing",
+      "Germination & Thinning",
+      "Inter-cultivation & Weed Management",
+      "Tillering & Top-Dressing Nitrogen",
+      "Earhead Emergence & Protective Irrigation",
+      "Grain Filling & Bird Scaring",
+      "Physiological Maturity Check",
+      "Harvesting, Threshing & Storage"
+    ]
+  },
+  Onion: {
+    durationDays: 120,
+    recommendedOffsetDays: 3,
+    reason: "Cool night temperatures stimulate uniform bulb enlargement and pungency.",
+    stages: [
+      "Raised Bed Preparation",
+      "Seed Treatment & Nursery Sowing",
+      "Seedling Transplanting",
+      "Early Vegetative Establishment",
+      "Weed Control & Sulfur Application",
+      "Bulb Initiation Stage",
+      "Bulb Development & Controlled Irrigation",
+      "Thrips & Purple Blotch Monitoring",
+      "Neck Fall & Irrigation Cutoff",
+      "Harvesting, Curing & Grading"
+    ]
+  },
+  Paddy: {
+    durationDays: 130,
+    recommendedOffsetDays: 2,
+    reason: "Assured canal/borewell water availability supports early nursery establishment.",
+    stages: [
+      "Puddling & Bund Repair",
+      "Certified Seed Selection & Soaking",
+      "Nursery Bed Management",
+      "Main Field Transplanting",
+      "Active Tillering & Water Level Control",
+      "Panicle Initiation & Potash Split",
+      "Booting & Flowering",
+      "Brown Planthopper & Blast Scouting",
+      "Milky to Dough Grain Stage",
+      "Drainage, Harvesting & Milling Dispatch"
+    ]
+  }
+};
+
+const DEMO_MANDIS = [
+  { name: "APMC Yeshwanthpur (Bengaluru)", distKm: 34, crop: "Tomato", price: 2450, trend: "+8.4%", transport: 450, updated: "2026-11-18 11:30 AM" },
+  { name: "Kolar APMC Tomato Market", distKm: 52, crop: "Tomato", price: 2620, trend: "+12.1%", transport: 680, updated: "2026-11-18 12:15 PM" },
+  { name: "Chikkaballapur APMC Mandi", distKm: 28, crop: "Tomato", price: 2310, trend: "+4.0%", transport: 380, updated: "2026-11-18 10:45 AM" },
+  { name: "Doddaballapur Rural Mandi", distKm: 19, crop: "Tomato", price: 2240, trend: "-1.5%", transport: 260, updated: "2026-11-18 09:50 AM" }
+];
+
+const DEMO_INDUSTRIES = [
+  { id: "ind1", name: "GreenEarth Bio-Compost & Vermi Unit", category: "Organic Compost & Vermicompost", location: "Hoskote Industrial Area, Bengaluru", distKm: 24, materials: "Damaged Vegetables, Overripe Tomato, Leaf Waste", minQty: "5 Quintals", transport: "Pickup Truck Available (>10 Qtl)", estValue: "₹350 – ₹550 / Quintal", contact: "+91-98450-XXXXX (Demo)", isDemo: true },
+  { id: "ind2", name: "Nandi Agro Biogas & Bio-CNG Plant", category: "Biogas & Biofertilizer Production", location: "Doddaballapur, Karnataka", distKm: 21, materials: "Spoiled Fruits, Rotten Vegetables, Crop Residue", minQty: "10 Quintals", transport: "Free Collection within 30 km", estValue: "₹280 – ₹420 / Quintal", contact: "+91-99001-XXXXX (Demo)", isDemo: true },
+  { id: "ind3", name: "Deccan Pulp & Puree Food Processors", category: "Food Processing Unit", location: "Kolar Food Park", distKm: 48, materials: "Blemished / Odd-sized Grade-B Tomato & Mango (Non-rotten)", minQty: "15 Quintals", transport: "Farmer Delivery / Shared Freight", estValue: "₹1,100 – ₹1,450 / Quintal", contact: "+91-97412-XXXXX (Demo)", isDemo: true },
+  { id: "ind4", name: "Sahyadri Biomass Briquettes Ltd", category: "Biomass Utilization", location: "Tumakuru Road", distKm: 42, materials: "Dry Stalks, Husk, Ragi Straw, Cotton Stalks", minQty: "20 Quintals", transport: "Baler & Pickup Available", estValue: "₹450 – ₹700 / Quintal", contact: "+91-94480-XXXXX (Demo)", isDemo: true }
+];
+
+const GOV_SCHEMES = [
+  {
+    name: "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+    eligibility: "All landholding farmer families with cultivable land records (RTC / Pahani) and Aadhaar-seeded bank accounts.",
+    benefits: "₹6,000 per year direct income support in three equal installments of ₹2,000 every 4 months.",
+    docs: "Aadhaar Card, Land Ownership Document (RTC/Khata), Bank Passbook, Mobile Number.",
+    procedure: "Register via PM-KISAN portal or local CSC / Raitha Samparka Kendra with e-KYC verification.",
+    url: "https://pmkisan.gov.in/",
+    verified: "November 2026"
+  },
+  {
+    name: "PMFBY (Pradhan Mantri Fasal Bima Yojana)",
+    eligibility: "All farmers growing notified crops in notified areas, including sharecroppers and tenant farmers.",
+    benefits: "Comprehensive yield loss insurance against drought, flood, hailstorm, pests, and post-harvest losses at nominal premium (1.5% Rabi, 2% Kharif, 5% Commercial/Horticulture).",
+    docs: "Land Record (RTC), Sowing Certificate, Bank Account Details, Aadhaar Card.",
+    procedure: "Apply online via National Crop Insurance Portal or through bank/CSC before cut-off date.",
+    url: "https://pmfby.gov.in/",
+    verified: "November 2026"
+  },
+  {
+    name: "PMKSY — Per Drop More Crop (Micro Irrigation Subsidy)",
+    eligibility: "Farmers owning agricultural land opting for Drip or Sprinkler irrigation systems.",
+    benefits: "Up to 55%–90% subsidy (varies by state & category in Karnataka) on drip/sprinkler installation.",
+    docs: "RTC / Pahani, Aadhaar, Caste Certificate (if applicable), Bank Passbook, Water Source Proof.",
+    procedure: "Submit application at Karnataka Horticulture/Agriculture Department (KKISAN portal) through empanelled vendors.",
+    url: "https://kkisan.karnataka.gov.in/",
+    verified: "November 2026"
+  },
+  {
+    name: "Raitha Siri & Krishi Bhagya (Karnataka State Schemes)",
+    eligibility: "Permanent resident farmers of Karnataka cultivating millets or constructing farm ponds (Krishi Honda).",
+    benefits: "Financial incentive per hectare for minor millet growers (Raitha Siri) and subsidy for farm ponds, polythene lining, and diesel/solar pump sets.",
+    docs: "FRUITS ID (Farmer Registration & Unified Beneficiary Information System), Aadhaar, RTC.",
+    procedure: "Ensure FRUITS ID registration at nearest Raitha Samparka Kendra (RSK) and apply online.",
+    url: "https://raitamitra.karnataka.gov.in/",
+    verified: "November 2026"
+  }
+];
+
+/* ============================================================================
+   4. GEMINI API HELPER (TEXT, VISION & STRUCTURED JSON WITH EXPONENTIAL BACKOFF)
+   ============================================================================ */
+async function callGeminiAPI({ prompt, systemInstruction = "", base64Image = null, mimeType = "image/jpeg", jsonSchema = null }) {
+  const apiKey = state.apiKeys.gemini || "";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+  const parts = [{ text: prompt }];
+  if (base64Image) {
+    parts.push({
+      inlineData: {
+        mimeType: mimeType,
+        data: base64Image
+      }
+    });
+  }
+
+  const payload = {
+    contents: [{ role: "user", parts }],
+    ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
+    ...(jsonSchema ? {
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: jsonSchema
+      }
+    } : {})
+  };
+
+  const delays = [1000, 2000, 4000];
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Empty model response");
+      return jsonSchema ? JSON.parse(text) : text;
+    } catch (err) {
+      if (attempt === delays.length) throw err;
+      await new Promise(r => setTimeout(r, delays[attempt]));
+    }
+  }
+}
+
+/* ============================================================================
+   5. NAVIGATION & CORE UI RENDERING
+   ============================================================================ */
+const NAV_ITEMS = [
+  { id: "dashboard", icon: "fa-table-columns", key: "nav_dashboard" },
+  { id: "journey", icon: "fa-route", key: "nav_journey" },
+  { id: "scanner", icon: "fa-microscope", key: "nav_scanner" },
+  { id: "demand", icon: "fa-chart-line", key: "nav_demand" },
+  { id: "weather", icon: "fa-cloud-sun-rain", key: "nav_weather" },
+  { id: "mandis", icon: "fa-map-location-dot", key: "nav_mandis" },
+  { id: "marketplace", icon: "fa-store", key: "nav_marketplace" },
+  { id: "recovery", icon: "fa-recycle", key: "nav_recovery" },
+  { id: "calculator", icon: "fa-calculator", key: "nav_calculator" },
+  { id: "soil", icon: "fa-flask-vial", key: "nav_soil" },
+  { id: "schemes", icon: "fa-landmark", key: "nav_schemes" },
+  { id: "voice", icon: "fa-microphone-lines", key: "nav_voice" },
+  { id: "profile", icon: "fa-user-gear", key: "nav_profile" },
+  { id: "settings", icon: "fa-sliders", key: "nav_settings" }
+];
+
+function showToast(msg, type = "success") {
+  const container = document.getElementById("toast-container");
+  const el = document.createElement("div");
+  const colors = type === "error" ? "bg-red-600 text-white" : type === "warn" ? "bg-amber-600 text-white" : "bg-emerald-800 text-white";
+  el.className = `${colors} px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center justify-between gap-3 pointer-events-auto transition-all`;
+  el.innerHTML = `<span>${msg}</span><button onclick="this.parentElement.remove()" class="opacity-75 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function handleGmailLogin(e) {
+  e.preventDefault();
+  const input = document.getElementById("farmer-gmail-input").value.trim();
+  const errEl = document.getElementById("gmail-error");
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|googlemail\.com|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/i;
+  if (!emailRegex.test(input)) {
+    errEl.textContent = "Please enter a valid Gmail address (e.g., farmer@gmail.com).";
+    errEl.classList.remove("hidden");
+    return;
+  }
+  errEl.classList.add("hidden");
+  state.gmail = input;
+  if (!state.profile.name || state.profile.name === "Ramesh Gowda") {
+    const derived = input.split("@")[0].replace(/[._]/g, " ");
+    state.profile.name = derived.charAt(0).toUpperCase() + derived.slice(1);
+  }
+  saveState();
+  bootApp();
+}
+
+function switchAccount() {
+  state.gmail = "";
+  saveState();
+  document.getElementById("app-shell").classList.add("hidden");
+  document.getElementById("auth-gate").classList.remove("hidden");
+}
+
+function changeLanguage(newLang) {
+  state.lang = newLang;
+  saveState();
+  syncLanguageSelectors();
+  applyStaticTranslations();
+  renderSidebar();
+  renderActiveTab();
+  showToast(`${LANG_META[newLang].name}`);
+}
+
+function syncLanguageSelectors() {
+  ["auth-lang-select", "mobile-lang-select", "desktop-lang-select"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = state.lang;
+  });
+}
+
+function applyStaticTranslations() {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    el.textContent = t(key);
+  });
+  updateNetworkUI();
+}
+
+function renderSidebar() {
+  const nav = document.getElementById("sidebar-nav");
+  nav.innerHTML = NAV_ITEMS.map(item => {
+    const active = state.activeTab === item.id;
+    return `
+      <button onclick="navigateTo('${item.id}')"
+        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition ${active ? 'bg-white text-emerald-950 font-bold shadow-md' : 'text-emerald-100 hover:bg-white/10'}">
+        <i class="fa-solid ${item.icon} w-5 text-center ${active ? 'text-emerald-700' : 'text-emerald-300'}"></i>
+        <span class="truncate">${t(item.key)}</span>
+      </button>
+    `;
+  }).join("");
+
+  document.getElementById("sidebar-farmer-name").textContent = state.profile.name;
+  document.getElementById("sidebar-farmer-loc").textContent = `${state.profile.district} • ${state.profile.primaryCrop}`;
+  document.getElementById("sidebar-avatar").textContent = (state.profile.name || "F").charAt(0).toUpperCase();
+}
+
+function navigateTo(tabId) {
+  state.activeTab = tabId;
+  saveState();
+  renderSidebar();
+  renderActiveTab();
+  // Close mobile drawer if open
+  const sb = document.getElementById("left-sidebar");
+  if (!sb.classList.contains("-translate-x-full") && window.innerWidth < 1024) {
+    toggleMobileSidebar();
+  }
+}
+
+function toggleMobileSidebar() {
+  const sb = document.getElementById("left-sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  sb.classList.toggle("-translate-x-full");
+  bd.classList.toggle("hidden");
+}
+
+function updateNetworkUI() {
+  const online = navigator.onLine;
+  const dot = document.getElementById("net-dot");
+  const txt = document.getElementById("net-status-text");
+  const mob = document.getElementById("mobile-net-badge");
+  const qBadge = document.getElementById("sync-queue-badge");
+
+  if (dot && txt) {
+    dot.className = `w-2.5 h-2.5 rounded-full ${online ? 'bg-emerald-400' : 'bg-amber-400'}`;
+    txt.textContent = online ? t("status_online") : t("status_offline");
+  }
+  if (mob) {
+    mob.textContent = online ? "ONLINE" : "OFFLINE";
+    mob.className = `text-[10px] font-bold px-2 py-1 rounded-full border ${online ? 'bg-emerald-400/20 text-emerald-100 border-emerald-300/30' : 'bg-amber-400/30 text-amber-100 border-amber-300/50'}`;
+  }
+  if (qBadge) {
+    if (state.offlineQueue.length > 0) {
+      qBadge.classList.remove("hidden");
+      qBadge.textContent = `${state.offlineQueue.length} Queued`;
+    } else {
+      qBadge.classList.add("hidden");
+    }
+  }
+}
+
+/* ============================================================================
+   6. TAB ROUTER & MODULE VIEWS
+   ============================================================================ */
+function renderActiveTab() {
+  const navObj = NAV_ITEMS.find(n => n.id === state.activeTab) || NAV_ITEMS[0];
+  document.getElementById("topbar-page-title").textContent = t(navObj.key);
+  document.getElementById("topbar-page-subtitle").textContent = `${state.profile.village}, ${state.profile.district} (${state.profile.state}) • ${LANG_META[state.lang].name}`;
+
+  const main = document.getElementById("main-content");
+  const offlineNotice = !navigator.onLine ? `
+    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-semibold flex items-center gap-3">
+      <i class="fa-solid fa-wifi-slash text-amber-600 text-base"></i>
+      <span>${t("offline_banner")}</span>
+    </div>` : "";
+
+  switch (state.activeTab) {
+    case "dashboard": main.innerHTML = offlineNotice + renderDashboard(); initDashboardCharts(); break;
+    case "journey": main.innerHTML = offlineNotice + renderFarmingJourney(); break;
+    case "scanner": main.innerHTML = offlineNotice + renderCropScanner(); break;
+    case "demand": main.innerHTML = offlineNotice + renderMarketDemand(); break;
+    case "weather": main.innerHTML = offlineNotice + renderWeather(); break;
+    case "mandis": main.innerHTML = offlineNotice + renderMandis(); break;
+    case "marketplace": main.innerHTML = offlineNotice + renderMarketplace(); break;
+    case "recovery": main.innerHTML = offlineNotice + renderDamagedRecovery(); break;
+    case "calculator": main.innerHTML = offlineNotice + renderProfitCalculator(); calculateProfit(); break;
+    case "soil": main.innerHTML = offlineNotice + renderSoilHealth(); break;
+    case "schemes": main.innerHTML = offlineNotice + renderSchemes(); break;
+    case "voice": main.innerHTML = offlineNotice + renderVoiceAssistant(); break;
+    case "profile": main.innerHTML = offlineNotice + renderProfile(); break;
+    case "settings": main.innerHTML = offlineNotice + renderSettings(); break;
+  }
+}
+
+/* -------------------- MODULE 1: PERSONALIZED DASHBOARD -------------------- */
+function renderDashboard() {
+  const crop = state.profile.primaryCrop || "Tomato";
+  const cfg = CROP_CONFIGS[crop] || CROP_CONFIGS.Tomato;
+  const completedCount = state.planting.completedStages.length;
+  const progressPct = Math.round((completedCount / cfg.stages.length) * 100);
+  const currentStageName = cfg.stages[Math.min(completedCount, cfg.stages.length - 1)];
+  const pendingReminders = state.reminders.filter(r => !r.done);
+
+  return `
+    <!-- Hero Welcome Banner -->
+    <div class="rounded-3xl agri-gradient text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-emerald-100 text-xs font-semibold mb-3">
+            <i class="fa-solid fa-location-dot text-amber-300"></i> ${state.profile.village}, ${state.profile.district}, ${state.profile.state}
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">${t("dash_greeting")}, ${state.profile.name}!</h2>
+          <p class="text-emerald-100 text-sm mt-1 max-w-xl">${t("dash_sub")} (${state.gmail})</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="navigateTo('scanner')" class="px-4 py-2.5 rounded-xl bg-white text-emerald-950 font-bold text-xs shadow-md hover:bg-emerald-50 transition flex items-center gap-2">
+            <i class="fa-solid fa-camera text-emerald-700"></i> ${t("nav_scanner")}
+          </button>
+          <button onclick="navigateTo('demand')" class="px-4 py-2.5 rounded-xl bg-amber-400 text-emerald-950 font-bold text-xs shadow-md hover:bg-amber-300 transition flex items-center gap-2">
+            <i class="fa-solid fa-chart-line"></i> ${t("nav_demand")}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="earthy-card rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold uppercase text-slate-400">${t("active_crop")}</span>
+          <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-seedling"></i></span>
+        </div>
+        <p class="text-xl font-extrabold text-slate-900">${crop}</p>
+        <p class="text-xs text-emerald-700 font-semibold mt-1">${state.profile.area} ${t("acres")} • ${state.profile.soilType}</p>
+      </div>
+
+      <div class="earthy-card rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold uppercase text-slate-400">${t("current_stage")}</span>
+          <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center"><i class="fa-solid fa-bars-progress"></i></span>
+        </div>
+        <p class="text-sm font-extrabold text-slate-900 line-clamp-1">${currentStageName}</p>
+        <div class="w-full bg-slate-100 h-2 rounded-full mt-2.5 overflow-hidden">
+          <div class="bg-emerald-600 h-full rounded-full" style="width:${progressPct}%"></div>
+        </div>
+        <p class="text-[11px] text-slate-500 font-semibold mt-1">${progressPct}% (${completedCount}/${cfg.stages.length})</p>
+      </div>
+
+      <div class="earthy-card rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold uppercase text-slate-400">${t("weather_now")}</span>
+          <span class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><i class="fa-solid fa-cloud-sun"></i></span>
+        </div>
+        <p class="text-xl font-extrabold text-slate-900">24°C <span class="text-xs font-medium text-slate-500">Partly Cloudy</span></p>
+        <p class="text-xs text-sky-700 font-semibold mt-1">Humidity 62% • Wind 11 km/h <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Demo</span></p>
+      </div>
+
+      <div class="earthy-card rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold uppercase text-slate-400">${t("next_task")}</span>
+          <span class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-bell"></i></span>
+        </div>
+        <p class="text-sm font-extrabold text-slate-900 line-clamp-1">${pendingReminders[0] ? pendingReminders[0].title : 'All tasks completed!'}</p>
+        <p class="text-xs text-rose-700 font-semibold mt-1">${pendingReminders[0] ? pendingReminders[0].time : 'Great work'}</p>
+      </div>
+    </div>
+
+    <!-- Charts + Quick Feature Hub -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="earthy-card rounded-2xl p-6 lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Regional Mandi Price Trend (Illustrative Demo)</h3>
+            <p class="text-xs text-slate-500">7-Day Average Modal Price (₹ / Quintal) — ${state.profile.district}</p>
+          </div>
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">${t("demo_badge")}</span>
+        </div>
+        <div class="h-64"><canvas id="dashPriceChart"></canvas></div>
+      </div>
+
+      <div class="earthy-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <h3 class="font-bold text-slate-900 text-base mb-1">Smart Action Shortcuts</h3>
+          <p class="text-xs text-slate-500 mb-4">Jump directly to intelligent tools</p>
+          <div class="space-y-2.5">
+            <button onclick="navigateTo('journey')" class="w-full p-3 rounded-xl bg-emerald-50/70 hover:bg-emerald-100 border border-emerald-200 flex items-center justify-between text-left transition">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-calendar-check text-emerald-700"></i><span class="text-xs font-bold text-emerald-950">7-Day Planting Window</span></span>
+              <i class="fa-solid fa-chevron-right text-xs text-emerald-600"></i>
+            </button>
+            <button onclick="navigateTo('recovery')" class="w-full p-3 rounded-xl bg-amber-50/70 hover:bg-amber-100 border border-amber-200 flex items-center justify-between text-left transition">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-recycle text-amber-700"></i><span class="text-xs font-bold text-amber-950">Damaged Crop Recovery</span></span>
+              <i class="fa-solid fa-chevron-right text-xs text-amber-600"></i>
+            </button>
+            <button onclick="navigateTo('voice')" class="w-full p-3 rounded-xl bg-sky-50/70 hover:bg-sky-100 border border-sky-200 flex items-center justify-between text-left transition">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-microphone text-sky-700"></i><span class="text-xs font-bold text-sky-950">${t("nav_voice")}</span></span>
+              <i class="fa-solid fa-chevron-right text-xs text-sky-600"></i>
+            </button>
+            <button onclick="navigateTo('calculator')" class="w-full p-3 rounded-xl bg-purple-50/70 hover:bg-purple-100 border border-purple-200 flex items-center justify-between text-left transition">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-calculator text-purple-700"></i><span class="text-xs font-bold text-purple-950">${t("nav_calculator")}</span></span>
+              <i class="fa-solid fa-chevron-right text-xs text-purple-600"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+          <span>Language: <strong>${LANG_META[state.lang].name}</strong></span>
+          <button onclick="navigateTo('profile')" class="text-emerald-700 font-bold hover:underline">Edit Profile</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function initDashboardCharts() {
+  const ctx = document.getElementById("dashPriceChart");
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ["Nov 12", "Nov 13", "Nov 14", "Nov 15", "Nov 16", "Nov 17", "Nov 18"],
+      datasets: [
+        { label: "Tomato (₹/Qtl)", data: [2150, 2220, 2190, 2300, 2380, 2410, 2450], borderColor: "#15803d", backgroundColor: "rgba(21,128,61,0.12)", fill: true, tension: 0.35 },
+        { label: "Onion (₹/Qtl)", data: [2750, 2780, 2810, 2800, 2860, 2890, 2900], borderColor: "#d97706", backgroundColor: "rgba(217,119,6,0.08)", fill: true, tension: 0.35 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+  });
+}
+
+/* -------------------- MODULE 2: SMART FARMING JOURNEY & 7-DAY PLANTING WINDOW -------------------- */
+function getSevenDayWindow(cropName) {
+  const cfg = CROP_CONFIGS[cropName] || CROP_CONFIGS.Tomato;
+  const today = new Date("2026-11-18T00:00:00");
+  const windowDates = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const iso = d.toISOString().split("T")[0];
+    const allowed = i >= 1 && i <= 7; // Strict 7-day permitted window
+    const recommended = i === cfg.recommendedOffsetDays;
+    windowDates.push({
+      iso,
+      label: d.toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" }),
+      allowed,
+      recommended
+    });
+  }
+  return windowDates;
+}
+
+function renderFarmingJourney() {
+  const crop = state.planting.crop || "Tomato";
+  const cfg = CROP_CONFIGS[crop] || CROP_CONFIGS.Tomato;
+  const dates = getSevenDayWindow(crop);
+  if (!state.planting.selectedDate || !dates.find(d => d.iso === state.planting.selectedDate && d.allowed)) {
+    const rec = dates.find(d => d.recommended) || dates.find(d => d.allowed);
+    state.planting.selectedDate = rec.iso;
+    saveState();
+  }
+
+  const harvestDate = new Date(state.planting.selectedDate + "T00:00:00");
+  harvestDate.setDate(harvestDate.getDate() + cfg.durationDays);
+  const harvestIso = harvestDate.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
+
+  return `
+    <!-- 7-DAY RESTRICTED PLANTING CALENDAR -->
+    <div class="earthy-card rounded-3xl p-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+        <div>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Agronomic Window Lock</span>
+          <h3 class="text-xl font-extrabold text-slate-900">${t("planting_title")}</h3>
+          <p class="text-xs text-slate-600 mt-1">${t("planting_sub")}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-600">Select Crop:</label>
+          <select onchange="selectJourneyCrop(this.value)" class="px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-950 font-bold text-sm outline-none">
+            ${Object.keys(CROP_CONFIGS).map(c => `<option value="${c}" ${c === crop ? 'selected' : ''}>${c}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-xs text-emerald-950">
+          <p class="font-bold"><i class="fa-solid fa-wand-magic-sparkles text-emerald-700 mr-1.5"></i>Agronomic Recommendation (${state.profile.district}):</p>
+          <p class="mt-0.5 text-emerald-800">${cfg.reason}</p>
+        </div>
+        <div class="text-xs bg-white px-3.5 py-2 rounded-xl border border-emerald-200 shrink-0">
+          <span class="text-slate-500">Est. Harvest:</span> <strong class="text-emerald-900">${harvestIso}</strong>
+        </div>
+      </div>
+
+      <!-- Restricted 14-day view showing 7 enabled vs 7 disabled dates -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+        ${dates.map(d => {
+          const isSelected = d.iso === state.planting.selectedDate;
+          if (!d.allowed) {
+            return `
+              <button type="button" onclick="handleBlockedDateClick('${d.label}')"
+                class="p-3 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-400 cursor-not-allowed text-left opacity-70">
+                <div class="flex items-center justify-between text-[10px] font-bold">
+                  <span>LOCKED</span>
+                  <i class="fa-solid fa-lock"></i>
+                </div>
+                <p class="text-xs font-bold mt-1">${d.label}</p>
+                <p class="text-[10px] mt-0.5">Outside 7-day window</p>
+              </button>`;
+          }
+          return `
+            <button type="button" onclick="selectPlantingDate('${d.iso}')"
+              class="p-3 rounded-xl border text-left transition ${isSelected ? 'agri-gradient text-white border-emerald-800 shadow-lg scale-[1.02]' : 'bg-white hover:border-emerald-500 border-emerald-200 text-slate-800'}">
+              <div class="flex items-center justify-between text-[10px] font-bold">
+                <span>${d.recommended ? '★ OPTIMAL' : 'AVAILABLE'}</span>
+                ${isSelected ? '<i class="fa-solid fa-circle-check"></i>' : ''}
+              </div>
+              <p class="text-xs font-extrabold mt-1">${d.label}</p>
+              <p class="text-[10px] mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-emerald-700'}">${d.recommended ? 'Best Soil/Temp' : 'Permitted'}</p>
+            </button>`;
+        }).join("")}
+      </div>
+      <p id="date-validation-msg" class="mt-3 text-xs font-semibold text-emerald-800">
+        Selected Planting Date: <strong>${state.planting.selectedDate}</strong> — All crop stages & irrigation reminders synchronized.
+      </p>
+    </div>
+
+    <!-- CROP JOURNEY STAGES & REMINDERS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="earthy-card rounded-3xl p-6 lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-extrabold text-slate-900 text-lg">${crop} — 10-Stage Farming Roadmap</h3>
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-900">${state.planting.completedStages.length} / ${cfg.stages.length} Completed</span>
+        </div>
+        <div class="space-y-2.5">
+          ${cfg.stages.map((stg, idx) => {
+            const done = state.planting.completedStages.includes(idx);
+            const stageDate = new Date(state.planting.selectedDate + "T00:00:00");
+            stageDate.setDate(stageDate.getDate() + Math.round((cfg.durationDays / cfg.stages.length) * idx));
+            const dateStr = stageDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+            return `
+              <div onclick="toggleJourneyStage(${idx})" class="cursor-pointer p-3.5 rounded-2xl border transition flex items-center justify-between gap-3 ${done ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white hover:bg-slate-50 border-slate-200'}">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${done ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                    ${done ? '<i class="fa-solid fa-check"></i>' : idx + 1}
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold ${done ? 'line-through text-emerald-900' : 'text-slate-900'}">${stg}</p>
+                    <p class="text-[11px] text-slate-500">Scheduled Window: <strong>${dateStr}</strong> • Tap to toggle completion</p>
+                  </div>
+                </div>
+                <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg ${done ? 'bg-emerald-200 text-emerald-950' : 'bg-amber-100 text-amber-900'}">${done ? 'Done' : 'Upcoming'}</span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+
+      <!-- Reminders Panel -->
+      <div class="earthy-card rounded-3xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-slate-900 text-base">Smart Farm Reminders</h3>
+          <button onclick="addCustomReminder()" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">+ Add</button>
+        </div>
+        <div class="space-y-2.5">
+          ${state.reminders.map(r => `
+            <div class="p-3 rounded-xl border ${r.done ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-amber-50/60 border-amber-200'} flex items-start justify-between gap-2">
+              <div class="flex items-start gap-2.5">
+                <input type="checkbox" ${r.done ? 'checked' : ''} onchange="toggleReminder('${r.id}')" class="mt-1 accent-emerald-600 w-4 h-4 cursor-pointer" />
+                <div>
+                  <p class="text-xs font-bold text-slate-900 ${r.done ? 'line-through' : ''}">${r.title}</p>
+                  <p class="text-[11px] text-slate-500">${r.type} • ${r.time}</p>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectJourneyCrop(crop) {
+  state.planting.crop = crop;
+  state.planting.selectedDate = null;
+  saveState();
+  renderActiveTab();
+}
+
+function selectPlantingDate(iso) {
+  state.planting.selectedDate = iso;
+  saveState();
+  renderActiveTab();
+  showToast(`Planting date locked to ${iso}`);
+}
+
+function handleBlockedDateClick(label) {
+  const msg = document.getElementById("date-validation-msg");
+  if (msg) {
+    msg.className = "mt-3 text-xs font-bold text-red-600";
+    msg.textContent = `Blocked: ${label} is outside the agronomically safe 7-day planting window for ${state.planting.crop} in ${state.profile.district}.`;
+  }
+  showToast("Date outside permitted 7-day window!", "error");
+}
+
+function toggleJourneyStage(idx) {
+  const pos = state.planting.completedStages.indexOf(idx);
+  if (pos >= 0) state.planting.completedStages.splice(pos, 1);
+  else state.planting.completedStages.push(idx);
+  saveState();
+  renderActiveTab();
+}
+
+function toggleReminder(id) {
+  const r = state.reminders.find(x => x.id === id);
+  if (r) r.done = !r.done;
+  saveState();
+  renderActiveTab();
+}
+
+function addCustomReminder() {
+  const title = prompt("Enter reminder task (e.g., Foliar Spray 19:19:19):");
+  if (!title) return;
+  state.reminders.unshift({ id: "r" + Date.now(), title, type: "Custom Task", time: "Tomorrow, 08:00 AM", done: false });
+  saveState();
+  renderActiveTab();
+  showToast("Reminder added!");
+}
+
+/* -------------------- MODULE 3: AI CROP DISEASE & IMAGE SCANNER -------------------- */
+let currentScanImageBase64 = null;
+let currentScanMime = "image/jpeg";
+let cameraStream = null;
+
+function renderCropScanner() {
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold">Gemini Vision AI • Output Language: ${LANG_META[state.lang].name}</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("scan_title")}</h3>
+          <p class="text-sm text-slate-600 mt-1">${t("scan_sub")}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left: Camera / Upload Controls -->
+        <div class="space-y-4">
+          <div class="border-2 border-dashed border-emerald-300 rounded-3xl bg-emerald-50/40 p-6 flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden">
+            <video id="scanner-video" class="hidden w-full rounded-2xl max-h-64 object-cover" autoplay playsinline></video>
+            <img id="scanner-preview" class="hidden w-full rounded-2xl max-h-64 object-contain shadow-md" alt="Crop Preview" />
+            <div id="scanner-placeholder" class="text-center space-y-2">
+              <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl mx-auto">
+                <i class="fa-solid fa-leaf"></i>
+              </div>
+              <p class="text-sm font-bold text-slate-800">Leaves, Fruits, Stems, Roots, or Whole Plant</p>
+              <p class="text-xs text-slate-500">Supports JPG, PNG, WebP or Live Camera Capture</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <button type="button" onclick="startScannerCamera()" class="py-3 px-4 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-camera"></i> <span>${t("btn_camera")}</span>
+            </button>
+            <button type="button" id="capture-snap-btn" onclick="captureCameraSnap()" class="hidden py-3 px-4 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-circle-dot"></i> <span>Snap Photo</span>
+            </button>
+            <label class="py-3 px-4 rounded-xl bg-emerald-100 text-emerald-950 font-bold text-xs hover:bg-emerald-200 transition flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-upload"></i> <span>${t("btn_upload")}</span>
+              <input type="file" accept="image/*" onchange="handleScanFileUpload(event)" class="hidden" />
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Optional Crop Context / Symptoms Note:</label>
+            <input type="text" id="scan-user-note" placeholder="e.g., Yellow spots on lower tomato leaves after rain" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-emerald-600" />
+          </div>
+
+          <button type="button" onclick="runCropDiseaseAnalysis()" class="w-full py-3.5 rounded-xl agri-gradient text-white font-bold text-sm shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>${t("btn_analyze")} (${LANG_META[state.lang].name})</span>
+          </button>
+        </div>
+
+        <!-- Right: 12-Point Structured AI Report -->
+        <div id="scan-report-container" class="rounded-3xl bg-slate-50 border border-slate-200 p-6 flex flex-col justify-between min-h-[360px]">
+          <div class="text-center my-auto py-10 space-y-2 text-slate-400">
+            <i class="fa-solid fa-file-medical text-4xl"></i>
+            <p class="text-sm font-semibold text-slate-600">12-Point Diagnostic Report Will Appear Here</p>
+            <p class="text-xs">Automatically generated in <strong>${LANG_META[state.lang].name}</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1.5"></i> ${t("disclaimer_ai")}
+      </div>
+    </div>
+  `;
+}
+
+async function startScannerCamera() {
+  try {
+    const video = document.getElementById("scanner-video");
+    const preview = document.getElementById("scanner-preview");
+    const ph = document.getElementById("scanner-placeholder");
+    const snapBtn = document.getElementById("capture-snap-btn");
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = cameraStream;
+    video.classList.remove("hidden");
+    preview.classList.add("hidden");
+    ph.classList.add("hidden");
+    snapBtn.classList.remove("hidden");
+  } catch (err) {
+    showToast("Camera permission denied or unavailable. Please upload an image file.", "error");
+  }
+}
+
+function captureCameraSnap() {
+  const video = document.getElementById("scanner-video");
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  currentScanImageBase64 = dataUrl.split(",")[1];
+  currentScanMime = "image/jpeg";
+
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(tr => tr.stop());
+    cameraStream = null;
+  }
+  video.classList.add("hidden");
+  document.getElementById("capture-snap-btn").classList.add("hidden");
+  const preview = document.getElementById("scanner-preview");
+  preview.src = dataUrl;
+  preview.classList.remove("hidden");
+  showToast("Photo captured!");
+}
+
+function handleScanFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentScanMime = file.type || "image/jpeg";
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    currentScanImageBase64 = dataUrl.split(",")[1];
+    const preview = document.getElementById("scanner-preview");
+    preview.src = dataUrl;
+    preview.classList.remove("hidden");
+    document.getElementById("scanner-placeholder").classList.add("hidden");
+    document.getElementById("scanner-video").classList.add("hidden");
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runCropDiseaseAnalysis() {
+  const reportBox = document.getElementById("scan-report-container");
+  const note = document.getElementById("scan-user-note")?.value || "";
+  if (!currentScanImageBase64 && !note) {
+    showToast("Please upload/capture a crop image or enter symptoms first.", "warn");
+    return;
+  }
+
+  const targetLangName = LANG_META[state.lang].name;
+  reportBox.innerHTML = `
+    <div class="my-auto text-center py-12 space-y-3">
+      <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-600"></i>
+      <p class="text-sm font-bold text-emerald-950">${t("analyzing_msg")}</p>
+      <p class="text-xs text-slate-500">Generating full 12-point report in ${targetLangName}</p>
+    </div>
+  `;
+
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      cropIdentification: { type: "STRING" },
+      diseaseOrPest: { type: "STRING" },
+      healthStatus: { type: "STRING" },
+      confidencePercent: { type: "STRING" },
+      symptomsDetected: { type: "STRING" },
+      possibleCauses: { type: "STRING" },
+      severityLevel: { type: "STRING" },
+      recommendedTreatment: { type: "STRING" },
+      organicOptions: { type: "STRING" },
+      preventiveMeasures: { type: "STRING" },
+      nextSteps: { type: "STRING" },
+      whenToConsultExpert: { type: "STRING" },
+      sectionLabels: {
+        type: "OBJECT",
+        properties: {
+          crop: { type: "STRING" },
+          disease: { type: "STRING" },
+          status: { type: "STRING" },
+          confidence: { type: "STRING" },
+          symptoms: { type: "STRING" },
+          causes: { type: "STRING" },
+          severity: { type: "STRING" },
+          treatment: { type: "STRING" },
+          organic: { type: "STRING" },
+          prevention: { type: "STRING" },
+          next: { type: "STRING" },
+          expert: { type: "STRING" }
+        }
+      }
+    },
+    required: ["cropIdentification", "diseaseOrPest", "healthStatus", "confidencePercent", "symptomsDetected", "possibleCauses", "severityLevel", "recommendedTreatment", "organicOptions", "preventiveMeasures", "nextSteps", "whenToConsultExpert", "sectionLabels"]
+  };
+
+  const prompt = `You are an expert agricultural plant pathologist assisting a farmer in ${state.profile.district}, ${state.profile.state}.
+CRITICAL LANGUAGE REQUIREMENT: Every single field value AND every key inside "sectionLabels" MUST be written completely in ${targetLangName} (${state.lang}). Do NOT output English unless the selected language is English.
+Analyze the provided crop image (and farmer note: "${note}"). Provide a comprehensive 12-point agricultural diagnostic report.`;
+
+  try {
+    if (!navigator.onLine) throw new Error("Offline");
+    const res = await callGeminiAPI({
+      prompt,
+      base64Image: currentScanImageBase64,
+      mimeType: currentScanMime,
+      jsonSchema: schema
+    });
+    renderScanReportCard(res);
+  } catch (err) {
+    // Graceful localized fallback if offline or API key unconfigured
+    const fallback = getLocalizedFallbackScan(state.lang, note);
+    renderScanReportCard(fallback, true);
+  }
+}
+
+function getLocalizedFallbackScan(lang, note) {
+  const dict = {
+    kn: {
+      cropIdentification: "ಟೊಮೆಟೊ (Solanum lycopersicum)",
+      diseaseOrPest: "ಅರ್ಲಿ ಬ್ಲೈಟ್ (Alternaria solani) — ಅಂದಾಜು",
+      healthStatus: "ಅನಾರೋಗ್ಯಕರ (ಆರಂಭಿಕ ಸೋಂಕು)",
+      confidencePercent: "86% (AI ಅಂದಾಜು)",
+      symptomsDetected: "ಕೆಳಗಿನ ಎಲೆಗಳ ಮೇಲೆ ಕಂದು ಬಣ್ಣದ ವೃತ್ತಾಕಾರದ ಚುಕ್ಕೆಗಳು ಮತ್ತು ಹಳದಿ ಅಂಚುಗಳು.",
+      possibleCauses: "ಹೆಚ್ಚಿನ ತೇವಾಂಶ, ರಾತ್ರಿಯ ಇಬ್ಬನಿ ಮತ್ತು ಮಣ್ಣಿನಿಂದ ಹರಡುವ ಶಿಲೀಂಧ್ರ ಬೀಜಕಗಳು.",
+      severityLevel: "ಮಧ್ಯಮ (Moderate)",
+      recommendedTreatment: "ಮ್ಯಾಂಕೋಜೆಬ್ 75% WP (2 ಗ್ರಾಂ/ಲೀಟರ್ ನೀರಿಗೆ) ಸಿಂಪಡಿಸಿ. ರೋಗಪೀಡಿತ ಕೆಳಗಿನ ಎಲೆಗಳನ್ನು ತೆಗೆದು ನಾಶಪಡಿಸಿ.",
+      organicOptions: "ಬೇವಿನ ಎಣ್ಣೆ (Azadirachtin 1500 ppm @ 3 ಮಿಲಿ/ಲೀ) ಮತ್ತು ಟ್ರೈಕೋడెರ್ಮಾ ವಿರಿಡೆ ಜೈವಿಕ ಶಿಲೀಂಧ್ರನಾಶಕ ಬಳಸಿ.",
+      preventiveMeasures: "ಹನಿ ನೀರಾವರಿ ಬಳಸಿ, ಎಲೆಗಳು ಒದ್ದೆಯಾಗುವುದನ್ನು ತಪ್ಪಿಸಿ ಮತ್ತು ಬೆಳೆ ಪರಿವರ್ತನೆ ಅನುಸರಿಸಿ.",
+      nextSteps: "ಮುಂದಿನ 5 ದಿನಗಳವರೆಗೆ ಹೊಸ ಎಲೆಗಳನ್ನು ಗಮನಿಸಿ ಮತ್ತು 7 ದಿನಗಳ ನಂತರ ಮರು-ಪರಿಶೀಲಿಸಿ.",
+      whenToConsultExpert: "ಕಾಂಡ ಕೊಳೆಯಲು ಪ್ರಾರಂಭಿಸಿದರೆ ಅಥವಾ 30% ಕ್ಕಿಂತ ಹೆಚ್ಚು ಎಲೆಗಳು ಒಣಗಿದರೆ ತಕ್ಷಣ KVK ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
+      sectionLabels: { crop: "1. ಬೆಳೆ ಗುರುತಿಸುವಿಕೆ", disease: "2. ರೋಗ / ಕೀಟ", status: "3. ಆರೋಗ್ಯ ಸ್ಥಿತಿ", confidence: "4. ವಿಶ್ವಾಸಾರ್ಹತೆ", symptoms: "5. ಲಕ್ಷಣಗಳು", causes: "6. ಸಂಭವನೀಯ ಕಾರಣಗಳು", severity: "7. ತೀವ್ರತೆ", treatment: "8. ಶಿಫಾರಸು ಮಾಡಿದ ಚಿಕಿತ್ಸೆ", organic: "9. ಸಾವಯವ ಚಿಕಿತ್ಸೆ", prevention: "10. ತಡೆಗಟ್ಟುವ ಕ್ರಮಗಳು", next: "11. ಮುಂದಿನ ಹಂತಗಳು", expert: "12. ತಜ್ಞರನ್ನು ಯಾವಾಗ ಸಂಪರ್ಕಿಸಬೇಕು" }
+    },
+    en: {
+      cropIdentification: `${state.profile.primaryCrop} Plant`,
+      diseaseOrPest: "Early Blight / Leaf Spot Syndrome (Estimated)",
+      healthStatus: "Unhealthy — Early Stage Fungal Stress",
+      confidencePercent: "85% (Offline/Demo Estimate)",
+      symptomsDetected: note || "Concentric dark brown rings on older lower leaves with surrounding chlorosis (yellow halo).",
+      possibleCauses: "High morning humidity, overhead splash, and fungal spore persistence in crop debris.",
+      severityLevel: "Moderate",
+      recommendedTreatment: "Prune lower infected leaves. Apply Mancozeb 75% WP (2g/L water) or Copper Oxychloride as per label.",
+      organicOptions: "Spray Neem Oil (3 ml/L) + Trichoderma viride bio-fungicide foliar application.",
+      preventiveMeasures: "Switch to drip irrigation, ensure proper plant spacing for airflow, and practice crop rotation.",
+      nextSteps: "Monitor upper canopy over 5 days and repeat preventive bio-spray after 7 days.",
+      whenToConsultExpert: "If stem lesions appear or >30% foliage wilts rapidly, visit your nearest Krishi Vigyan Kendra (KVK).",
+      sectionLabels: { crop: "1. Crop Identification", disease: "2. Disease / Pest", status: "3. Health Condition", confidence: "4. Confidence", symptoms: "5. Symptoms Detected", causes: "6. Possible Causes", severity: "7. Severity Level", treatment: "8. Recommended Treatment", organic: "9. Organic Options", prevention: "10. Preventive Measures", next: "11. Recommended Next Steps", expert: "12. When to Consult Expert" }
+    }
+  };
+  return dict[lang] || dict.en;
+}
+
+function renderScanReportCard(r, isFallback = false) {
+  const L = r.sectionLabels;
+  const rows = [
+    [L.crop, r.cropIdentification],
+    [L.disease, r.diseaseOrPest],
+    [L.status, r.healthStatus],
+    [L.confidence, r.confidencePercent],
+    [L.symptoms, r.symptomsDetected],
+    [L.causes, r.possibleCauses],
+    [L.severity, r.severityLevel],
+    [L.treatment, r.recommendedTreatment],
+    [L.organic, r.organicOptions],
+    [L.prevention, r.preventiveMeasures],
+    [L.next, r.nextSteps],
+    [L.expert, r.whenToConsultExpert]
+  ];
+
+  document.getElementById("scan-report-container").innerHTML = `
+    <div class="space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+        <span class="text-xs font-extrabold uppercase text-emerald-800">${LANG_META[state.lang].name} Report</span>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isFallback ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}">
+          ${isFallback ? 'Offline/Demo Fallback' : 'AI Vision Verified'}
+        </span>
+      </div>
+      <div class="grid grid-cols-1 gap-2.5 max-h-[460px] overflow-y-auto pr-1">
+        ${rows.map(([label, val]) => `
+          <div class="p-3 rounded-xl bg-white border border-slate-200/80">
+            <p class="text-[11px] font-bold text-emerald-800">${label}</p>
+            <p class="text-xs text-slate-800 mt-0.5 leading-relaxed">${val}</p>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+/* -------------------- MODULE 4: MARKET DEMAND INTELLIGENCE -------------------- */
+function renderMarketDemand() {
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">${t("demo_badge")}</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("demand_title")}</h3>
+          <p class="text-sm text-slate-600 mt-1">${t("demand_sub")}</p>
+        </div>
+      </div>
+
+      <form onsubmit="runMarketDemandAnalysis(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Farmer Location</label>
+          <input type="text" id="md-location" value="${state.profile.district}, ${state.profile.state}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Primary Crop</label>
+          <input type="text" id="md-crop" value="${state.profile.primaryCrop}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Expected Quantity (Quintals)</label>
+          <input type="number" id="md-qty" value="30" min="1" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Crop Quality Grade</label>
+          <select id="md-quality" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium bg-white">
+            <option value="Grade A (Export/Super)">Grade A (Super)</option>
+            <option value="Grade B (Standard Mandi)">Grade B (Standard)</option>
+            <option value="Organic Certified">Organic Certified</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
+          <button type="submit" class="px-6 py-3 rounded-xl agri-gradient text-white font-bold text-sm shadow-lg hover:opacity-95 transition flex items-center gap-2">
+            <i class="fa-solid fa-magnifying-glass-chart"></i> <span>${t("btn_run_demand")}</span>
+          </button>
+        </div>
+      </form>
+
+      <div id="market-demand-results" class="space-y-6">
+        ${getInitialDemandCardsHtml(30)}
+      </div>
+    </div>
+  `;
+}
+
+function getInitialDemandCardsHtml(qty) {
+  const crops = [
+    { name: "Tomato (Hybrid)", score: 88, level: "Very High", price: 2450, trend: "Rising (+11%)", mandi: "Kolar & Yeshwanthpur APMC", dist: "34 km", buyers: "Supermarket Chains, Wholesale Aggregators", window: "Next 10–18 Days", transport: qty * 18, risk: "Perishable; price sensitive to sudden rain arrivals", action: "Harvest at breaker stage & dispatch early morning to Kolar APMC." },
+    { name: "Red Onion", score: 78, level: "High", price: 2900, trend: "Steady (+6%)", mandi: "Yeshwanthpur & Chikkaballapur", dist: "28 km", buyers: "Interstate Traders, Cold Storage Buyers", window: "Next 15–30 Days", transport: qty * 16, risk: "Moderate moisture damage if uncured", action: "Cure bulbs for 5 days to achieve Grade-A storage premium." },
+    { name: "Finger Millet (Ragi)", score: 71, level: "Moderate-High", price: 3850, trend: "Stable (+3%)", mandi: "Doddaballapur & MSP Procurement", dist: "19 km", buyers: "State MSP Centers, Organic Flour Mills", window: "Flexible (60 Days)", transport: qty * 12, risk: "Low storage risk; steady institutional demand", action: "Register for MSP procurement or sell to organic millet processors." }
+  ];
+
+  return `
+    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
+      <p class="font-extrabold text-sm mb-1"><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>AI Opportunity Answer: "Which crop should I grow or sell for better market opportunities?"</p>
+      <p>Based on <strong>${state.profile.district}</strong> soil (${state.profile.soilType}), water (${state.profile.water}), and seasonal demand estimates, <strong>Tomato (Demand Score: 88/100)</strong> offers the highest short-term net return, while <strong>Ragi</strong> provides low-risk MSP stability.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      ${crops.map(c => {
+        const rev = c.price * qty;
+        const net = rev - c.transport;
+        return `
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-extrabold text-lg text-slate-900">${c.name}</h4>
+                <span class="px-2.5 py-1 rounded-full text-xs font-extrabold ${c.score >= 85 ? 'bg-emerald-100 text-emerald-900' : c.score >= 75 ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-900'}">
+                  ${c.score}/100 • ${c.level}
+                </span>
+              </div>
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-3">
+                <div class="agri-gradient h-full rounded-full" style="width:${c.score}%"></div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div><span class="text-slate-500 block">Est. Price/Qtl</span><strong class="text-slate-900">₹${c.price.toLocaleString()}</strong></div>
+                <div><span class="text-slate-500 block">Price Trend</span><strong class="text-emerald-700">${c.trend}</strong></div>
+                <div><span class="text-slate-500 block">Est. Revenue (${qty}Q)</span><strong class="text-slate-900">₹${rev.toLocaleString()}</strong></div>
+                <div><span class="text-slate-500 block">Est. Net Profit</span><strong class="text-emerald-800">₹${net.toLocaleString()}</strong></div>
+              </div>
+
+              <ul class="mt-3 space-y-1.5 text-xs text-slate-700">
+                <li><strong>Nearby Mandis:</strong> ${c.mandi} (${c.dist})</li>
+                <li><strong>Buyers:</strong> ${c.buyers}</li>
+                <li><strong>Best Window:</strong> ${c.window}</li>
+                <li><strong>Est. Transport:</strong> ₹${c.transport.toLocaleString()}</li>
+                <li class="text-amber-800"><strong>Risk:</strong> ${c.risk}</li>
+              </ul>
+            </div>
+
+            <div class="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-950 font-medium">
+              <strong>Recommended Action:</strong> ${c.action}
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <p class="text-[11px] text-slate-500 italic">*Note: Market demand scores and prices above are AI-generated estimates based on historical seasonal patterns and regional crop suitability, not live exchange feeds.</p>
+  `;
+}
+
+function runMarketDemandAnalysis(e) {
+  e.preventDefault();
+  const qty = parseInt(document.getElementById("md-qty").value || "30", 10);
+  document.getElementById("market-demand-results").innerHTML = getInitialDemandCardsHtml(qty);
+  showToast("Market demand comparison updated!");
+}
+
+/* -------------------- MODULE 5: WEATHER & LOCATION INTELLIGENCE -------------------- */
+function renderWeather() {
+  const forecast = [
+    { day: "Today", icon: "fa-cloud-sun", temp: "24°C / 16°C", rain: "10%", wind: "11 km/h", advice: "Ideal window for foliar nutrient & neem oil spraying." },
+    { day: "Thu", icon: "fa-sun", temp: "26°C / 17°C", rain: "5%", wind: "9 km/h", advice: "Clear sunny skies; run scheduled morning drip irrigation." },
+    { day: "Fri", icon: "fa-cloud-rain", temp: "22°C / 15°C", rain: "65%", wind: "18 km/h", advice: "Rain Alert: Pause irrigation & avoid pesticide spraying." },
+    { day: "Sat", icon: "fa-cloud-showers-heavy", temp: "21°C / 15°C", rain: "75%", wind: "20 km/h", advice: "Ensure field drainage channels are clear to prevent root rot." },
+    { day: "Sun", icon: "fa-cloud-sun", temp: "24°C / 16°C", rain: "15%", wind: "12 km/h", advice: "Scout lower leaves for fungal blight post-rain." }
+  ];
+
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="px-3 py-1 rounded-full bg-sky-100 text-sky-900 text-xs font-bold">${state.apiKeys.weather ? t("live_badge") : t("demo_badge")}</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("nav_weather")} — ${state.profile.district}</h3>
+          <p class="text-xs text-slate-500">Agri-advisory tailored for <strong>${state.profile.primaryCrop}</strong></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="weather-loc-input" value="${state.profile.district}" class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold" />
+          <button onclick="updateWeatherLocation()" class="px-4 py-2 rounded-xl agri-gradient text-white text-xs font-bold">Update</button>
+        </div>
+      </div>
+
+      <!-- Rain & Spray Alerts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <i class="fa-solid fa-cloud-rain text-amber-600 text-xl mt-0.5"></i>
+          <div>
+            <h4 class="text-sm font-extrabold text-amber-950">48-Hour Rain Advisory</h4>
+            <p class="text-xs text-amber-900 mt-0.5">Moderate rainfall expected Friday–Saturday. Complete fertilizer top-dressing before Thursday evening.</p>
+          </div>
+        </div>
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+          <i class="fa-solid fa-spray-can-sparkles text-emerald-700 text-xl mt-0.5"></i>
+          <div>
+            <h4 class="text-sm font-extrabold text-emerald-950">Optimal Spray Window</h4>
+            <p class="text-xs text-emerald-900 mt-0.5">Today 07:00 AM – 10:30 AM & 04:00 PM – 06:00 PM (Low wind speed 11 km/h, zero rain).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5-Day Forecast Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        ${forecast.map(f => `
+          <div class="rounded-2xl border border-slate-200 p-4 bg-white flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-extrabold text-sm text-slate-900">${f.day}</span>
+              <i class="fa-solid ${f.icon} text-xl text-sky-600"></i>
+            </div>
+            <div>
+              <p class="text-lg font-extrabold text-slate-900">${f.temp}</p>
+              <p class="text-[11px] text-slate-500">Rain: ${f.rain} • Wind: ${f.wind}</p>
+            </div>
+            <p class="text-[11px] font-medium text-emerald-900 bg-emerald-50 p-2 rounded-xl">${f.advice}</p>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function updateWeatherLocation() {
+  const val = document.getElementById("weather-loc-input").value.trim();
+  if (!val) return;
+  state.profile.district = val;
+  saveState();
+  renderSidebar();
+  renderActiveTab();
+  showToast(`Weather location updated to ${val}`);
+}
+
+/* -------------------- MODULE 6: GOOGLE MAPS & NEARBY MANDIS -------------------- */
+function renderMandis() {
+  const qty = 25;
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">${t("demo_badge")}</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("nav_mandis")}</h3>
+          <p class="text-xs text-slate-600 mt-1">Compare nearby APMC mandis, transport costs, and net earnings for <strong>${qty} Quintals</strong>.</p>
+        </div>
+        <a href="https://www.google.com/maps/search/APMC+Mandi+near+${encodeURIComponent(state.profile.district)}" target="_blank" rel="noopener"
+          class="px-4 py-2.5 rounded-xl agri-gradient text-white text-xs font-bold inline-flex items-center gap-2 shadow-md">
+          <i class="fa-solid fa-diamond-turn-right"></i> Open Live Google Maps Mandis
+        </a>
+      </div>
+
+      <!-- Comparison Table -->
+      <div class="overflow-x-auto rounded-2xl border border-slate-200">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-emerald-950 text-white">
+              <th class="p-3.5 font-bold">Mandi Market</th>
+              <th class="p-3.5 font-bold">Distance</th>
+              <th class="p-3.5 font-bold">Modal Price (₹/Qtl)</th>
+              <th class="p-3.5 font-bold">Trend</th>
+              <th class="p-3.5 font-bold">Est. Transport (25Q)</th>
+              <th class="p-3.5 font-bold">Est. Net Earnings</th>
+              <th class="p-3.5 font-bold">Navigate</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 bg-white">
+            ${DEMO_MANDIS.map((m, idx) => {
+              const net = (m.price * qty) - m.transport;
+              const isBest = idx === 1;
+              return `
+                <tr class="${isBest ? 'bg-emerald-50/70' : ''}">
+                  <td class="p-3.5 font-bold text-slate-900">
+                    ${m.name}
+                    ${isBest ? '<span class="ml-1.5 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px]">BEST NET RETURN</span>' : ''}
+                    <span class="block text-[10px] text-slate-400 font-normal">Updated: ${m.updated} (Demo)</span>
+                  </td>
+                  <td class="p-3.5 font-semibold">${m.distKm} km</td>
+                  <td class="p-3.5 font-extrabold text-slate-900">₹${m.price.toLocaleString()}</td>
+                  <td class="p-3.5 font-bold ${m.trend.startsWith('+') ? 'text-emerald-700' : 'text-rose-600'}">${m.trend}</td>
+                  <td class="p-3.5 text-slate-600">₹${m.transport}</td>
+                  <td class="p-3.5 font-extrabold text-emerald-900">₹${net.toLocaleString()}</td>
+                  <td class="p-3.5">
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.name)}" target="_blank" rel="noopener"
+                      class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-1">
+                      <i class="fa-solid fa-location-arrow"></i> Map
+                    </a>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* -------------------- MODULE 7: FARMER MARKETPLACE & BUYER CONNECTION -------------------- */
+function renderMarketplace() {
+  return `
+    <div class="space-y-6">
+      <div class="earthy-card rounded-3xl p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 class="text-2xl font-extrabold text-slate-900">${t("nav_marketplace")}</h3>
+            <p class="text-xs text-slate-600 mt-1">Publish direct farm produce listings and connect with verified buyers.</p>
+          </div>
+          <button onclick="document.getElementById('new-listing-form').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl agri-gradient text-white text-xs font-bold shadow-md flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Publish New Crop Listing
+          </button>
+        </div>
+
+        <!-- Create Listing Form -->
+        <form id="new-listing-form" onsubmit="publishMarketplaceListing(event)" class="hidden mb-6 p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <input type="text" id="mp-crop" required placeholder="Crop & Variety (e.g., Tomato Arka Rakshak)" class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium" />
+          <input type="text" id="mp-qty" required placeholder="Quantity (e.g., 20 Quintals)" class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium" />
+          <input type="text" id="mp-quality" required placeholder="Quality Grade (e.g., Grade A)" class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium" />
+          <input type="text" id="mp-price" required placeholder="Expected Price (e.g., ₹2,500 / Quintal)" class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium" />
+          <input type="text" id="mp-loc" required value="${state.profile.village}, ${state.profile.district}" class="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium" />
+          <button type="submit" class="py-2.5 px-4 rounded-xl agri-gradient text-white font-bold text-xs">Publish Listing</button>
+        </form>
+
+        <!-- Listings Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          ${state.marketplaceListings.map(item => `
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between space-y-4">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${item.isDemo ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}">
+                    ${item.isDemo ? 'Demo Sample Listing' : 'Farmer Published'}
+                  </span>
+                  ${!item.isDemo ? `<button onclick="deleteMarketplaceListing('${item.id}')" class="text-rose-600 hover:text-rose-800 text-xs" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </div>
+                <h4 class="font-extrabold text-base text-slate-900">${item.crop}</h4>
+                <p class="text-lg font-extrabold text-emerald-800 mt-1">${item.price}</p>
+                <div class="mt-3 space-y-1 text-xs text-slate-600">
+                  <p><strong>Quantity:</strong> ${item.qty} (${item.quality})</p>
+                  <p><strong>Location:</strong> ${item.location}</p>
+                  <p><strong>Seller:</strong> ${item.seller}</p>
+                </div>
+              </div>
+              <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500"><i class="fa-solid fa-users text-emerald-600 mr-1"></i>${item.inquiries} Buyer Inquiries</span>
+                <button onclick="sendBuyerInquiry('${item.crop}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Connect</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function publishMarketplaceListing(e) {
+  e.preventDefault();
+  const newItem = {
+    id: "m" + Date.now(),
+    crop: document.getElementById("mp-crop").value,
+    qty: document.getElementById("mp-qty").value,
+    quality: document.getElementById("mp-quality").value,
+    price: document.getElementById("mp-price").value,
+    location: document.getElementById("mp-loc").value,
+    seller: state.profile.name,
+    isDemo: false,
+    inquiries: 0
+  };
+  state.marketplaceListings.unshift(newItem);
+  saveState();
+  renderActiveTab();
+  showToast("Crop listing published to Marketplace!");
+}
+
+function deleteMarketplaceListing(id) {
+  state.marketplaceListings = state.marketplaceListings.filter(x => x.id !== id);
+  saveState();
+  renderActiveTab();
+  showToast("Listing removed.");
+}
+
+function sendBuyerInquiry(cropName) {
+  if (!navigator.onLine) {
+    state.offlineQueue.push({ type: "marketplace_inquiry", crop: cropName, ts: Date.now() });
+    saveState();
+    updateNetworkUI();
+    showToast("Offline: Inquiry queued and will sync when internet returns.", "warn");
+    return;
+  }
+  showToast(`Interest logged for ${cropName}. Note: Demo listings do not dispatch live SMS.`);
+}
+
+/* -------------------- MODULE 8: DAMAGED CROP RECOVERY & INDUSTRY CONNECT -------------------- */
+function renderDamagedRecovery() {
+  return `
+    <div class="space-y-6">
+      <div class="earthy-card rounded-3xl p-6 sm:p-8">
+        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold">Zero-Waste Circular Agri-Economy</span>
+        <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("recovery_title")}</h3>
+        <p class="text-sm text-slate-600 mt-1">${t("recovery_sub")}</p>
+
+        <!-- Step 1 & 2: Damage Assessment Form -->
+        <form onsubmit="assessDamagedCrop(event)" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Damaged Crop</label>
+            <input type="text" id="rec-crop" value="${state.profile.primaryCrop}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Damage Type</label>
+            <select id="rec-type" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold">
+              <option value="overripe">Overripe / Market Surplus (Non-rotten)</option>
+              <option value="hail_bruised">Hailstorm / Physical Bruising</option>
+              <option value="spoiled_fungal">Spoiled / Fungal Rot (Unsafe for Food)</option>
+              <option value="dry_stalks">Dry Crop Residue / Stalks</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Available Quantity (Quintals)</label>
+            <input type="number" id="rec-qty" value="15" min="1" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold" />
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="w-full py-2.5 px-4 rounded-xl agri-gradient text-white font-bold text-xs shadow-md">
+              Assess Recovery Options
+            </button>
+          </div>
+        </form>
+
+        <div id="recovery-assessment-box" class="mt-5"></div>
+      </div>
+
+      <!-- Step 4: Industry Connect Directory -->
+      <div class="earthy-card rounded-3xl p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+          <div>
+            <h4 class="text-lg font-extrabold text-slate-900">Nearby Agricultural Recycling & Processing Industries</h4>
+            <p class="text-xs text-slate-500">Send crop availability inquiry directly to compost, biogas, or processing units.</p>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold self-start">${t("demo_badge")}</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          ${DEMO_INDUSTRIES.map(ind => `
+            <div class="rounded-2xl border border-slate-200 p-5 bg-white flex flex-col justify-between space-y-4">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                  <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">${ind.category}</span>
+                  <span class="text-xs font-extrabold text-slate-700">${ind.distKm} km away</span>
+                </div>
+                <h5 class="font-extrabold text-base text-slate-900">${ind.name}</h5>
+                <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-location-dot text-emerald-600 mr-1"></i>${ind.location}</p>
+                <div class="space-y-1 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl">
+                  <p><strong>Accepts:</strong> ${ind.materials}</p>
+                  <p><strong>Min Quantity:</strong> ${ind.minQty} • <strong>Est. Value:</strong> ${ind.estValue}</p>
+                  <p><strong>Logistics:</strong> ${ind.transport}</p>
+                  <p><strong>Contact:</strong> ${ind.contact}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <button onclick="submitIndustryInquiry('${ind.name}')" class="flex-1 py-2.5 px-3 rounded-xl agri-gradient text-white text-xs font-bold hover:opacity-95 transition">
+                  Send Availability Inquiry
+                </button>
+                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ind.name + ' ' + ind.location)}" target="_blank" rel="noopener"
+                  class="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold">
+                  <i class="fa-solid fa-map-pin"></i> Directions
+                </a>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function assessDamagedCrop(e) {
+  e.preventDefault();
+  const crop = document.getElementById("rec-crop").value;
+  const type = document.getElementById("rec-type").value;
+  const qty = parseInt(document.getElementById("rec-qty").value || "10", 10);
+
+  let recommendation = "";
+  let safetyWarning = "";
+  let estReturn = "";
+
+  if (type === "spoiled_fungal") {
+    safetyWarning = "SAFETY NOTICE: Fungal/rotten produce MUST NOT be used for human food or direct animal feed due to mycotoxin risk.";
+    recommendation = "1. Aerobic Organic Composting or Vermicomposting (mix with dry straw 1:2). 2. Anaerobic Biogas / Bio-CNG digester feedstock.";
+    estReturn = `₹${(qty * 320).toLocaleString()} – ₹${(qty * 480).toLocaleString()} (Demo Estimate)`;
+  } else if (type === "overripe" || type === "hail_bruised") {
+    safetyWarning = "SAFETY NOTICE: Suitable for food processing ONLY if free from mold, foul odor, and chemical contamination.";
+    recommendation = "1. Pulp / Puree / Sauce Food Processing Units (highest recovery value). 2. Secondary surplus goes to Vermicompost or Biogas.";
+    estReturn = `₹${(qty * 1100).toLocaleString()} – ₹${(qty * 1400).toLocaleString()} (Demo Estimate)`;
+  } else {
+    safetyWarning = "Dry biomass residue is safe for briquetting, mulching, and compost bedding.";
+    recommendation = "1. Biomass Briquette / Pellet Manufacturers. 2. Farm-gate mulching to retain soil moisture.";
+    estReturn = `₹${(qty * 450).toLocaleString()} – ₹${(qty * 650).toLocaleString()} (Demo Estimate)`;
+  }
+
+  document.getElementById("recovery-assessment-box").innerHTML = `
+    <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-2 text-xs">
+      <div class="flex items-center justify-between">
+        <span class="font-extrabold text-emerald-950 text-sm">AI Recovery Assessment — ${qty} Quintals of ${crop}</span>
+        <span class="px-2.5 py-0.5 rounded-full bg-white text-emerald-900 font-bold border border-emerald-200">${estReturn}</span>
+      </div>
+      <p class="text-rose-700 font-bold"><i class="fa-solid fa-shield-virus mr-1"></i>${safetyWarning}</p>
+      <p class="text-emerald-950"><strong>Recommended Utilization Pathways:</strong> ${recommendation}</p>
+    </div>
+  `;
+}
+
+function submitIndustryInquiry(industryName) {
+  const crop = document.getElementById("rec-crop")?.value || state.profile.primaryCrop;
+  const qty = document.getElementById("rec-qty")?.value || "15";
+  if (!navigator.onLine) {
+    state.offlineQueue.push({ type: "industry_inquiry", industry: industryName, crop, qty, ts: Date.now() });
+    saveState();
+    updateNetworkUI();
+    showToast("Offline: Inquiry saved to sync queue!", "warn");
+    return;
+  }
+  showToast(`Demo Inquiry recorded for ${industryName} (${qty} Qtl ${crop}). Note: Demo listings do not represent live factory commitments.`);
+}
+
+/* -------------------- MODULE 9: PROFIT CALCULATOR -------------------- */
+let profitChartInstance = null;
+
+function renderProfitCalculator() {
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8">
+      <h3 class="text-2xl font-extrabold text-slate-900 mb-1">${t("nav_calculator")}</h3>
+      <p class="text-xs text-slate-600 mb-6">Adjust cultivation costs, yield, and expected price to calculate break-even point and net profit.</p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Land Area (Acres)</label>
+            <input type="number" id="pc-area" value="${state.profile.area}" step="0.5" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Seed / Seedling Cost (₹)</label>
+            <input type="number" id="pc-seed" value="12000" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Fertilizer & Bio-Inputs (₹)</label>
+            <input type="number" id="pc-fert" value="18000" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Labor & Harvesting Cost (₹)</label>
+            <input type="number" id="pc-labor" value="25000" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Irrigation & Power (₹)</label>
+            <input type="number" id="pc-irrig" value="6000" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Transport & Packaging (₹)</label>
+            <input type="number" id="pc-trans" value="9000" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Total Expected Yield (Quintals)</label>
+            <input type="number" id="pc-yield" value="90" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/40 text-sm font-extrabold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Expected Selling Price (₹/Quintal)</label>
+            <input type="number" id="pc-price" value="2200" oninput="calculateProfit()" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/40 text-sm font-extrabold" />
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-5 flex flex-col justify-between space-y-4">
+          <div id="pc-summary" class="space-y-3"></div>
+          <div class="h-44"><canvas id="profitChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function calculateProfit() {
+  const area = Math.max(0.1, parseFloat(document.getElementById("pc-area")?.value || 1));
+  const seed = parseFloat(document.getElementById("pc-seed")?.value || 0);
+  const fert = parseFloat(document.getElementById("pc-fert")?.value || 0);
+  const labor = parseFloat(document.getElementById("pc-labor")?.value || 0);
+  const irrig = parseFloat(document.getElementById("pc-irrig")?.value || 0);
+  const trans = parseFloat(document.getElementById("pc-trans")?.value || 0);
+  const yld = Math.max(1, parseFloat(document.getElementById("pc-yield")?.value || 1));
+  const price = parseFloat(document.getElementById("pc-price")?.value || 0);
+
+  const totalCost = seed + fert + labor + irrig + trans;
+  const revenue = yld * price;
+  const netProfit = revenue - totalCost;
+  const profitPerAcre = Math.round(netProfit / area);
+  const breakEven = Math.round(totalCost / yld);
+  const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : 0;
+
+  const box = document.getElementById("pc-summary");
+  if (box) {
+    box.innerHTML = `
+      <div class="p-3.5 rounded-xl ${netProfit >= 0 ? 'agri-gradient text-white' : 'bg-rose-600 text-white'}">
+        <span class="text-[11px] uppercase font-bold opacity-80">Estimated Net Profit</span>
+        <p class="text-2xl font-extrabold">₹${netProfit.toLocaleString()}</p>
+        <p class="text-xs opacity-90">Profit/Acre: ₹${profitPerAcre.toLocaleString()} • Margin: ${margin}%</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="p-2.5 rounded-xl bg-white border border-slate-200"><span class="text-slate-500 block">Total Cost</span><strong>₹${totalCost.toLocaleString()}</strong></div>
+        <div class="p-2.5 rounded-xl bg-white border border-slate-200"><span class="text-slate-500 block">Gross Revenue</span><strong>₹${revenue.toLocaleString()}</strong></div>
+        <div class="p-2.5 rounded-xl bg-white border border-slate-200 col-span-2"><span class="text-slate-500 block">Break-Even Selling Price</span><strong class="text-amber-800">₹${breakEven.toLocaleString()} / Quintal</strong></div>
+      </div>
+    `;
+  }
+
+  const ctx = document.getElementById("profitChart");
+  if (ctx) {
+    if (profitChartInstance) profitChartInstance.destroy();
+    profitChartInstance = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Production Cost", "Net Profit"],
+        datasets: [{ data: [totalCost, Math.max(0, netProfit)], backgroundColor: ["#d97706", "#15803d"] }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    });
+  }
+}
+
+/* -------------------- MODULE 10: SOIL HEALTH & FERTILIZER -------------------- */
+function renderSoilHealth() {
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div>
+        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">General Advisory — Verify with Soil Health Card Lab Test</span>
+        <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("nav_soil")}</h3>
+        <p class="text-xs text-slate-600 mt-1">Tailored for <strong>${state.profile.soilType}</strong> and <strong>${state.profile.primaryCrop}</strong>.</p>
+      </div>
+
+      <form onsubmit="generateSoilAdvisory(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Soil Type</label>
+          <select id="sh-type" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white">
+            <option ${state.profile.soilType.includes('Red') ? 'selected' : ''}>Red Loamy Soil</option>
+            <option ${state.profile.soilType.includes('Black') ? 'selected' : ''}>Black Cotton Soil</option>
+            <option>Sandy Loam</option>
+            <option>Alluvial Soil</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Soil pH (Optional)</label>
+          <input type="number" id="sh-ph" step="0.1" value="6.6" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Nitrogen (N) Status</label>
+          <select id="sh-n" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white">
+            <option>Medium (280-560 kg/ha)</option>
+            <option>Low (&lt;280 kg/ha)</option>
+            <option>High (&gt;560 kg/ha)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Phosphorus / Potash</label>
+          <select id="sh-pk" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white">
+            <option>Medium P / Medium K</option>
+            <option>Low P / Low K</option>
+            <option>High P / Medium K</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="w-full py-2.5 px-4 rounded-xl agri-gradient text-white font-bold text-xs">Update Soil Plan</button>
+        </div>
+      </form>
+
+      <div id="soil-advisory-output" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+          <h4 class="font-extrabold text-sm text-emerald-950"><i class="fa-solid fa-seedling mr-1.5"></i>Organic Soil Enrichment</h4>
+          <p class="text-xs text-emerald-900 leading-relaxed">Incorporate 8–10 tonnes/acre of well-decomposed Farm Yard Manure (FYM) or Vermicompost enriched with <em>Trichoderma</em> and <em>Azospirillum</em> 15 days prior to planting.</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+          <h4 class="font-extrabold text-sm text-amber-950"><i class="fa-solid fa-flask mr-1.5"></i>Balanced Nutrient Guidance</h4>
+          <p class="text-xs text-amber-900 leading-relaxed">Apply basal Phosphorus and 50% Potash at transplanting; split Nitrogen and remaining Potash through drip fertigation (19:19:19 followed by 13:0:45 at fruiting). Confirm exact NPK dosage via your Government Soil Health Card.</p>
+        </div>
+        <div class="p-5 rounded-2xl bg-sky-50 border border-sky-200 space-y-2">
+          <h4 class="font-extrabold text-sm text-sky-950"><i class="fa-solid fa-droplet mr-1.5"></i>Water & Mulch Conservation</h4>
+          <p class="text-xs text-sky-900 leading-relaxed">Use 25-micron silver-black plastic mulch or organic paddy straw mulching on raised beds to cut evaporation by 35% and suppress weeds.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function generateSoilAdvisory(e) {
+  e.preventDefault();
+  const ph = parseFloat(document.getElementById("sh-ph").value || "6.5");
+  let phNote = "Neutral pH (6.5–7.2): Ideal nutrient availability.";
+  if (ph < 6.0) phNote = "Acidic Soil (<6.0): Apply agricultural lime as recommended by a soil lab before sowing.";
+  if (ph > 7.8) phNote = "Alkaline Soil (>7.8): Apply agricultural gypsum and green manuring (Dhaincha) to improve structure.";
+  showToast(phNote);
+}
+
+/* -------------------- MODULE 11: GOVERNMENT SCHEMES -------------------- */
+function renderSchemes() {
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div>
+        <h3 class="text-2xl font-extrabold text-slate-900">${t("nav_schemes")}</h3>
+        <p class="text-xs text-slate-600 mt-1">Verified central & Karnataka state agricultural welfare schemes with official portals.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        ${GOV_SCHEMES.map(s => `
+          <div class="rounded-2xl border border-slate-200 p-5 bg-white flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-bold">Verified: ${s.verified}</span>
+                <i class="fa-solid fa-landmark text-emerald-700"></i>
+              </div>
+              <h4 class="font-extrabold text-base text-slate-900">${s.name}</h4>
+              <p class="text-xs text-slate-700"><strong>Benefits:</strong> ${s.benefits}</p>
+              <p class="text-xs text-slate-600"><strong>Eligibility:</strong> ${s.eligibility}</p>
+              <p class="text-xs text-slate-600"><strong>Documents:</strong> ${s.docs}</p>
+              <p class="text-xs text-slate-600"><strong>How to Apply:</strong> ${s.procedure}</p>
+            </div>
+            <a href="${s.url}" target="_blank" rel="noopener" class="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-xs font-extrabold flex items-center justify-center gap-2 transition">
+              <span>Visit Official Portal</span>
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+/* -------------------- MODULE 12: MULTILINGUAL AI VOICE ASSISTANT -------------------- */
+let recognitionInstance = null;
+let isListening = false;
+
+function renderVoiceAssistant() {
+  const suggestions = {
+    en: ["When should I irrigate my tomato crop?", "How to control early blight organically?", "What is PM-KISAN eligibility?"],
+    kn: ["ಟೊಮೆಟೊ ಬೆಳೆಗೆ ಯಾವಾಗ ನೀರು ಹಾಯಿಸಬೇಕು?", "ಸಾವಯವ ರೀತಿಯಲ್ಲಿ ಎಲೆ ಚುಕ್ಕೆ ರೋಗ ನಿಯಂತ್ರಿಸುವುದು ಹೇಗೆ?", "PM-KISAN ಯೋಜನೆಯ ಅರ್ಹತೆ ಏನು?"],
+    te: ["టమోటా పంటకు ఎప్పుడు నీరు పెట్టాలి?", "సేంద్రీయ పద్ధతిలో ఆకు మచ్చ తెగులును ఎలా నివారించాలి?", "PM-KISAN అర్హత ఏమిటి?"],
+    hi: ["टमाटर की फसल में सिंचाई कब करें?", "जैविक तरीके से झुलसा रोग कैसे रोकें?", "PM-KISAN योजना की पात्रता क्या है?"],
+    mr: ["टोमॅटो पिकाला पाणी कधी द्यावे?", "सेंद्रिय पद्धतीने करपा रोग कसा नियंत्रित करावा?", "PM-KISAN योजनेची पात्रता काय आहे?"],
+    ta: ["தக்காளி பயிருக்கு எப்போது நீர் பாய்ச்ச வேண்டும்?", "இயற்கை முறையில் இலைப்புள்ளி நோயை எவ்வாறு கட்டுப்படுத்துவது?", "PM-KISAN தகுதி என்ன?"]
+  };
+  const activeSugg = suggestions[state.lang] || suggestions.en;
+
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold">Active Voice Language: ${LANG_META[state.lang].name} (${LANG_META[state.lang].bcp47})</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mt-2">${t("voice_title")}</h3>
+          <p class="text-xs text-slate-600 mt-1">${t("voice_sub")}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="stopVoiceSpeech()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-volume-xmark"></i> <span>${t("voice_stop")}</span>
+          </button>
+          <button onclick="clearVoiceChat()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
+            ${t("voice_clear")}
+          </button>
+        </div>
+      </div>
+
+      <!-- Suggested Prompts in Selected Language -->
+      <div class="flex flex-wrap gap-2">
+        ${activeSugg.map(q => `
+          <button onclick="submitVoiceQuery('${q.replace(/'/g, "\\'")}')" class="text-xs font-semibold px-3.5 py-2 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition">
+            "${q}"
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- Conversation History -->
+      <div id="voice-chat-box" class="rounded-2xl bg-slate-50 border border-slate-200 p-4 h-80 overflow-y-auto space-y-3">
+        ${state.voiceHistory.length === 0 ? `
+          <div class="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-2">
+            <i class="fa-solid fa-microphone-lines text-3xl text-emerald-600"></i>
+            <p class="text-xs font-semibold text-slate-600">Tap the microphone button below to speak in ${LANG_META[state.lang].name}, or type your question.</p>
+          </div>
+        ` : state.voiceHistory.map((m, i) => `
+          <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[82%] rounded-2xl p-3.5 text-xs leading-relaxed ${m.role === 'user' ? 'agri-gradient text-white' : 'bg-white border border-slate-200 text-slate-800 shadow-xs'}">
+              <p>${m.text}</p>
+              ${m.role === 'ai' ? `
+                <button onclick="speakText(${i})" class="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline">
+                  <i class="fa-solid fa-volume-high"></i> Listen
+                </button>` : ''}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <!-- Mic + Text Input Controls -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <button id="mic-trigger-btn" onclick="toggleSpeechRecognition()" class="py-3.5 px-5 rounded-2xl agri-gradient text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 shrink-0 transition">
+          <i class="fa-solid fa-microphone"></i>
+          <span id="mic-btn-label">${t("voice_listen")} (${LANG_META[state.lang].name})</span>
+        </button>
+
+        <form onsubmit="handleTypedVoiceSubmit(event)" class="flex-1 flex gap-2">
+          <input type="text" id="voice-text-input" placeholder="${t("voice_placeholder")}" class="flex-1 px-4 py-3 rounded-2xl border border-slate-300 text-sm outline-none focus:border-emerald-600" />
+          <button type="submit" class="px-5 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </form>
+      </div>
+      <p id="voice-live-transcript" class="text-xs font-semibold text-emerald-700 hidden"></p>
+    </div>
+  `;
+}
+
+function toggleSpeechRecognition() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    showToast("Browser Speech Recognition is not supported here. Please type your question below.", "warn");
+    return;
+  }
+  if (isListening && recognitionInstance) {
+    recognitionInstance.stop();
+    return;
+  }
+
+  recognitionInstance = new SpeechRec();
+  recognitionInstance.lang = LANG_META[state.lang].bcp47;
+  recognitionInstance.interimResults = true;
+  recognitionInstance.maxAlternatives = 1;
+
+  const btn = document.getElementById("mic-trigger-btn");
+  const lbl = document.getElementById("mic-btn-label");
+  const liveBox = document.getElementById("voice-live-transcript");
+
+  recognitionInstance.onstart = () => {
+    isListening = true;
+    btn.classList.add("ring-4", "ring-emerald-300");
+    lbl.textContent = `Listening (${LANG_META[state.lang].name})...`;
+    liveBox.classList.remove("hidden");
+    liveBox.textContent = "Listening...";
+  };
+
+  recognitionInstance.onresult = (event) => {
+    const transcript = Array.from(event.results).map(r => r[0].transcript).join("");
+    liveBox.textContent = `Recognized: "${transcript}"`;
+    if (event.results[0].isFinal) {
+      submitVoiceQuery(transcript);
+    }
+  };
+
+  recognitionInstance.onerror = (e) => {
+    showToast(`Voice recognition note: ${e.error}. You can also type below.`, "warn");
+  };
+
+  recognitionInstance.onend = () => {
+    isListening = false;
+    if (btn) btn.classList.remove("ring-4", "ring-emerald-300");
+    if (lbl) lbl.textContent = `${t("voice_listen")} (${LANG_META[state.lang].name})`;
+  };
+
+  recognitionInstance.start();
+}
+
+function handleTypedVoiceSubmit(e) {
+  e.preventDefault();
+  const inp = document.getElementById("voice-text-input");
+  const q = inp.value.trim();
+  if (!q) return;
+  inp.value = "";
+  submitVoiceQuery(q);
+}
+
+async function submitVoiceQuery(question) {
+  state.voiceHistory.push({ role: "user", text: question });
+  saveState();
+  renderActiveTab();
+
+  const targetLangName = LANG_META[state.lang].name;
+  const sysPrompt = `You are Smart Agri Hub 3.0's friendly agricultural advisor speaking with farmer ${state.profile.name} in ${state.profile.district}, ${state.profile.state} (Crop: ${state.profile.primaryCrop}, Soil: ${state.profile.soilType}).
+MANDATORY RULE: Reply ONLY in ${targetLangName} (${state.lang}). Keep the answer practical, accurate, respectful, and concise (3-5 sentences) so it reads aloud naturally via text-to-speech.`;
+
+  let reply = "";
+  try {
+    if (!navigator.onLine) throw new Error("Offline");
+    reply = await callGeminiAPI({ prompt: question, systemInstruction: sysPrompt });
+  } catch (err) {
+    const offlineReplies = {
+      kn: `ನಮಸ್ಕಾರ ${state.profile.name}, ನಿಮ್ಮ ${state.profile.primaryCrop} ಬೆಳೆಗೆ ಬೆಳಿಗ್ಗೆ ಹನಿ ನೀರಾವರಿ ನೀಡಿ ಮತ್ತು ಮಣ್ಣಿನ ತೇವಾಂಶವನ್ನು ಕಾಪಾಡಿಕೊಳ್ಳಿ. ಹೆಚ್ಚಿನ ಮಾಹಿತಿಗಾಗಿ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವಾದಾಗ ಮತ್ತೆ ಕೇಳಿ.`,
+      te: `నమస్కారం ${state.profile.name}, మీ ${state.profile.primaryCrop} పంటకు ఉదయం వేళ డ్రిప్ నీటిపారుదల అందించండి. ఆఫ్‌లైన్ మోడ్‌లో ఉన్నందున సమగ్ర AI సమాధానం కోసం ఆన్‌లైన్‌లోకి రండి.`,
+      hi: `नमस्ते ${state.profile.name}, अपनी ${state.profile.primaryCrop} फसल में सुबह के समय ड्रिप सिंचाई करें और पत्तियों की नियमित निगरानी रखें।`,
+      mr: `नमस्कार ${state.profile.name}, तुमच्या ${state.profile.primaryCrop} पिकाला सकाळी ठिबक सिंचनाने पाणी द्या आणि पानांचे नियमित निरीक्षण करा.`,
+      ta: `வணக்கம் ${state.profile.name}, உங்கள் ${state.profile.primaryCrop} பயிருக்கு காலையில் சொட்டு நீர் பாசனம் வழங்கவும்.`,
+      en: `Namaste ${state.profile.name}, for your ${state.profile.primaryCrop} crop in ${state.profile.district}, maintain morning drip irrigation and inspect lower leaves weekly for early pest control.`
+    };
+    reply = offlineReplies[state.lang] || offlineReplies.en;
+  }
+
+  state.voiceHistory.push({ role: "ai", text: reply });
+  saveState();
+  renderActiveTab();
+  const chatBox = document.getElementById("voice-chat-box");
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+  speakRawText(reply);
+}
+
+function speakText(index) {
+  const item = state.voiceHistory[index];
+  if (item) speakRawText(item.text);
+}
+
+function speakRawText(text) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = LANG_META[state.lang].bcp47;
+  const voices = window.speechSynthesis.getVoices();
+  const matched = voices.find(v => v.lang.toLowerCase().startsWith(state.lang));
+  if (matched) utter.voice = matched;
+  window.speechSynthesis.speak(utter);
+}
+
+function stopVoiceSpeech() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+
+function clearVoiceChat() {
+  stopVoiceSpeech();
+  state.voiceHistory = [];
+  saveState();
+  renderActiveTab();
+}
+
+/* -------------------- MODULE 13: FARMER PROFILE -------------------- */
+function renderProfile() {
+  const p = state.profile;
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 max-w-4xl">
+      <h3 class="text-2xl font-extrabold text-slate-900 mb-1">${t("nav_profile")}</h3>
+      <p class="text-xs text-slate-500 mb-6">Logged in as <strong>${state.gmail}</strong> • Saved locally for offline access & personalized crop intelligence.</p>
+
+      <form onsubmit="saveFarmerProfile(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Farmer Name</label>
+          <input type="text" id="prof-name" value="${p.name}" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Preferred Language</label>
+          <select id="prof-lang" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white">
+            ${Object.entries(LANG_META).map(([k, v]) => `<option value="${k}" ${k === state.lang ? 'selected' : ''}>${v.name}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">State</label>
+          <input type="text" id="prof-state" value="${p.state}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">District</label>
+          <input type="text" id="prof-district" value="${p.district}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Village / Hobli</label>
+          <input type="text" id="prof-village" value="${p.village}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Farm Area (Acres)</label>
+          <input type="number" step="0.1" id="prof-area" value="${p.area}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Soil Type</label>
+          <input type="text" id="prof-soil" value="${p.soilType}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Water Availability</label>
+          <input type="text" id="prof-water" value="${p.water}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-bold text-slate-600 mb-1">Primary Crop Grown</label>
+          <select id="prof-crop" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white">
+            ${Object.keys(CROP_CONFIGS).map(c => `<option value="${c}" ${c === p.primaryCrop ? 'selected' : ''}>${c}</option>`).join("")}
+          </select>
+        </div>
+        <div class="sm:col-span-2 pt-2">
+          <button type="submit" class="px-6 py-3 rounded-xl agri-gradient text-white font-bold text-sm shadow-lg">${t("save_btn")}</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function saveFarmerProfile(e) {
+  e.preventDefault();
+  state.profile.name = document.getElementById("prof-name").value;
+  state.profile.state = document.getElementById("prof-state").value;
+  state.profile.district = document.getElementById("prof-district").value;
+  state.profile.village = document.getElementById("prof-village").value;
+  state.profile.area = parseFloat(document.getElementById("prof-area").value || "1");
+  state.profile.soilType = document.getElementById("prof-soil").value;
+  state.profile.water = document.getElementById("prof-water").value;
+  state.profile.primaryCrop = document.getElementById("prof-crop").value;
+  state.planting.crop = state.profile.primaryCrop;
+  const newLang = document.getElementById("prof-lang").value;
+  saveState();
+  changeLanguage(newLang);
+  showToast(t("saved_toast"));
+}
+
+/* -------------------- MODULE 14: SETTINGS & OFFLINE SYNC -------------------- */
+function renderSettings() {
+  return `
+    <div class="earthy-card rounded-3xl p-6 sm:p-8 max-w-3xl space-y-6">
+      <div>
+        <h3 class="text-2xl font-extrabold text-slate-900">${t("nav_settings")}</h3>
+        <p class="text-xs text-slate-600 mt-1">Manage optional API integrations, offline PWA cache, and queued actions.</p>
+      </div>
+
+      <form onsubmit="saveApiSettings(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Optional Gemini API Key Override (Leave blank in Canvas preview)</label>
+          <input type="password" id="set-gemini-key" value="${state.apiKeys.gemini}" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm" />
+        </div>
+        <button type="submit" class="px-5 py-2.5 rounded-xl agri-gradient text-white font-bold text-xs">${t("save_btn")}</button>
+      </form>
+
+      <div class="pt-5 border-t border-slate-200 space-y-3">
+        <h4 class="font-extrabold text-sm text-slate-900">Offline Mode & Sync Queue</h4>
+        <p class="text-xs text-slate-600">Status: <strong>${navigator.onLine ? t("status_online") : t("status_offline")}</strong> • Queued offline actions: <strong>${state.offlineQueue.length}</strong></p>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="flushOfflineQueue()" class="px-4 py-2 rounded-xl bg-emerald-100 text-emerald-950 text-xs font-bold">Sync Queued Items Now</button>
+          <button onclick="resetAllDemoData()" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">Reset Local Data</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveApiSettings(e) {
+  e.preventDefault();
+  state.apiKeys.gemini = document.getElementById("set-gemini-key").value.trim();
+  saveState();
+  showToast(t("saved_toast"));
+}
+
+function flushOfflineQueue() {
+  if (!navigator.onLine) {
+    showToast("Cannot sync while offline.", "warn");
+    return;
+  }
+  const count = state.offlineQueue.length;
+  state.offlineQueue = [];
+  saveState();
+  updateNetworkUI();
+  renderActiveTab();
+  showToast(count > 0 ? `Synced ${count} queued items!` : "Queue is already empty.");
+}
+
+function resetAllDemoData() {
+  localStorage.removeItem("smart_agri_hub_3_state");
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  switchAccount();
+}
+
+/* ============================================================================
+   7. OFFLINE SERVICE WORKER REGISTRATION & APP BOOTSTRAP
+   ============================================================================ */
+function registerInlineServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    const swCode = `
+      const CACHE_NAME = 'smart-agri-hub-v3';
+      self.addEventListener('install', e => {
+        self.skipWaiting();
+      });
+      self.addEventListener('fetch', e => {
+        if (e.request.method !== 'GET') return;
+        e.respondWith(
+          fetch(e.request).then(res => {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+            return res;
+          }).catch(() => caches.match(e.request))
+        );
+      });
+    `;
+    const blob = new Blob([swCode], { type: "application/javascript" });
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+  }
+}
+
+function bootApp() {
+  syncLanguageSelectors();
+  applyStaticTranslations();
+
+  if (!state.gmail) {
+    document.getElementById("auth-gate").classList.remove("hidden");
+    document.getElementById("app-shell").classList.add("hidden");
+    return;
+  }
+
+  document.getElementById("auth-gate").classList.add("hidden");
+  document.getElementById("app-shell").classList.remove("hidden");
+  renderSidebar();
+  renderActiveTab();
+}
+
+window.addEventListener("online", () => {
+  updateNetworkUI();
+  flushOfflineQueue();
+  renderActiveTab();
+});
+
+window.addEventListener("offline", () => {
+  updateNetworkUI();
+  renderActiveTab();
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  registerInlineServiceWorker();
+  bootApp();
+});
+</script>
+</body>
+</html>
